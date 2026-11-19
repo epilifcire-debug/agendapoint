@@ -12,12 +12,17 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-## Produção (Shard Cloud — Aplicação com Dockerfile)
+## Produção (Shard Cloud — Aplicação Node)
 
-1. Crie a aplicação apontando para este repositório (`Dockerfile` na raiz, porta **80**).
-2. Variáveis de **build**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` (e `VITE_GOOGLE_ENABLED=true` só quando for ligar o Google).
-3. Variáveis de **execução**: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `PORT`. As do Google são opcionais.
-4. Domínio: `agenda.efcsys.com` → defina `APP_URL=https://agenda.efcsys.com`.
+A Shard instala as dependências e roda `node index.js` (definido em `.shardcloud` e no `package.json`).
+O `index.js` gera o build só quando o código ou as variáveis `VITE_*` mudam e depois sobe o servidor compilado.
+
+1. Aplicação ligada a este repositório, branch `main`, **arquivo principal `index.js`**.
+2. **Memória: 1024 MB.** O build usa ~860 MB no pico; o app rodando usa ~100 MB.
+3. Variáveis (painel da Shard): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `PORT=80`.
+4. Domínio: `agenda.efcsys.com` → `APP_URL=https://agenda.efcsys.com`.
+
+O `Dockerfile` continua disponível para hospedagens que usam Docker.
 
 Teste local da imagem:
 ```bash

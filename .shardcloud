@@ -1,0 +1,5 @@
+DISPLAY_NAME=Agenda Point
+DESCRIPTION=Agenda de artistas do Point do Ingresso
+MAIN=index.js
+MEMORY=1024
+VERSION=LATEST
