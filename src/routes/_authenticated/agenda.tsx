@@ -10,7 +10,7 @@ import { EventDrawer, eventStatusKind } from "@/components/EventDrawer";
 import { amIAdmin, listAgendaOwners, listArtistsAgenda } from "@/lib/admin.functions";
 import { createAgendaShare, listAgendaShares, revokeAgendaShare } from "@/lib/agendaShares.functions";
 import { grantAgendaAccess, listAdminPeers, revokeAgendaAccess } from "@/lib/adminAgendaAccess.functions";
-import { EmptyState, IconButton, Ingresso, PageHeader, accentFor } from "@/components/brand";
+import { EmptyState, IconButton, Ingresso, IngressoSkeleton, PageHeader, accentFor } from "@/components/brand";
 
 
 
@@ -34,7 +34,8 @@ function AgendaPage() {
   const agendaFn = useServerFn(listArtistsAgenda);
 
   const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => adminFn() });
-  const isAdmin = admin.data?.isAdmin === true;
+  // Queries start together with the role check; the server enforces access anyway.
+  const isAdmin = admin.data?.isAdmin !== false;
 
   const artists = useQuery({
     queryKey: ["agenda-owners"],
@@ -124,7 +125,6 @@ function AgendaPage() {
     );
   }, [agenda.data, selected.length, q, view, currentWeek, allMonths, city, state, status]);
 
-  if (admin.isLoading) return <div className="h-40 animate-pulse rounded-[10px] bg-sheet" aria-busy />;
   if (!isAdmin) {
     return <EmptyState title="Área dos administradores">Sua agenda está no Painel.</EmptyState>;
   }
@@ -206,8 +206,8 @@ function AgendaPage() {
         </div>
       </details>
 
-      {artists.isLoading || (selected.length > 0 && agenda.isLoading) ? (
-        <div className="grid gap-3" aria-busy>{[0, 1, 2].map((i) => <div key={i} className="h-[118px] animate-pulse rounded-2xl border border-line bg-sheet" />)}</div>
+      {artists.isLoading || (!selectionInitialized && !!artists.data?.owners.length) || (selected.length > 0 && agenda.isLoading) ? (
+        <IngressoSkeleton />
       ) : allArtists.length === 0 ? (
         <EmptyState title="Nenhum artista cadastrado" actions={<Button asChild><Link to="/artistas"><Plus /> Cadastrar artista</Link></Button>}>Cadastre um artista para montar a agenda.</EmptyState>
       ) : selected.length === 0 ? (
@@ -230,6 +230,7 @@ function AgendaPage() {
                 <li key={e.id}>
                   <Ingresso
                     start={e.start}
+                    end={e.end}
                     title={e.summary}
                     place={e.location}
                     artist={e.artistName}

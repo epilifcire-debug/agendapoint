@@ -118,10 +118,17 @@ export const getAdminStats = createServerFn({ method: "GET" })
     const { artistUserIds, mediumAdminIds } = await import("@/server/roles.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Counted separately: an administrator is never part of the artist total,
-    // and the Admin Master is in neither count.
+    // Artists = managed artists (cadastrados no app) + legacy artist accounts not
+    // linked to a managed artist. Administrators (Master included) counted apart.
     const artists = await artistUserIds(context.userId);
-    const mediumAdmins = roles.isMaster ? await mediumAdminIds() : new Set<string>();
+    let managedQuery = context.supabase.from("managed_artists").select("id, legacy_auth_user_id");
+    if (!roles.isMaster) managedQuery = managedQuery.eq("owner_admin_id", context.userId);
+    const { data: managed, error: managedError } = await managedQuery;
+    if (managedError) throw managedError;
+    const linked = new Set((managed ?? []).map((a) => a.legacy_auth_user_id).filter(Boolean) as string[]);
+    const unlinkedLegacy = [...artists].filter((id) => !linked.has(id)).length;
+    const { masterAdminIds } = await import("@/server/roles.server");
+    const totalAdmins = roles.isMaster ? (await mediumAdminIds()).size + (await masterAdminIds()).size : 0;
 
     const { data: conns } = await supabaseAdmin
       .from("app_user_connections")
@@ -132,8 +139,8 @@ export const getAdminStats = createServerFn({ method: "GET" })
     ).size;
 
     return {
-      totalArtists: artists.size,
-      mediumAdmins: mediumAdmins.size,
+      totalArtists: (managed ?? []).length + unlinkedLegacy,
+      mediumAdmins: totalAdmins,
       isMaster: roles.isMaster,
       connected: connectedCount,
       notConnected: Math.max(0, artists.size - connectedCount),

@@ -82,10 +82,11 @@ export function ManagedArtistPublicPage({ artist, events, media }: { artist: Pub
   };
 
   const accent = accentFor(artist.id);
+  const photo = artist.cover_url || artist.avatar_url;
   return (
     <div className="min-h-dvh bg-paper text-ink">
-      <header className="pi-stage grid bg-stage text-white md:grid-cols-[1fr_40%]">
-        <div className="pt-safe flex flex-col gap-4 px-5 pb-10 sm:px-10">
+      <header className={`pi-stage grid bg-stage text-white ${photo ? "md:grid-cols-[1fr_40%]" : ""}`}>
+        <div className={`pt-safe flex flex-col gap-4 px-5 pb-10 sm:px-10 ${photo ? "" : "mx-auto w-full max-w-[880px] min-h-[340px] sm:!px-6"}`}>
           <div className="flex items-center justify-between py-5">
             <Link to="/" aria-label="Point do Ingresso"><img src={logoUrl} alt="" className="h-9 w-9 rounded-full bg-white" /></Link>
             <button type="button" onClick={shareAgenda} className="pi-ghost"><Share2 className="h-[18px] w-[18px]" /> Compartilhar</button>
@@ -98,9 +99,9 @@ export function ManagedArtistPublicPage({ artist, events, media }: { artist: Pub
             {socials.map((social) => <a key={social.label} href={social.href} target="_blank" rel="noreferrer" className="pi-ghost h-11">{social.label}</a>)}
           </div>
         </div>
-        <div className="relative order-first h-56 overflow-hidden bg-violet md:order-none md:h-auto md:min-h-[420px]">
-          {(artist.cover_url || artist.avatar_url) && <img src={artist.cover_url || artist.avatar_url || ""} alt={`Foto de ${artist.artist_name}`} className="pi-duotone absolute inset-0 h-full w-full object-cover" />}
-        </div>
+        {photo && <div className="relative order-first h-56 overflow-hidden bg-stage md:order-none md:h-auto md:min-h-[420px]">
+          <img src={photo} alt={`Foto de ${artist.artist_name}`} className="pi-duotone absolute inset-0 h-full w-full object-cover" />
+        </div>}
       </header>
 
       <main className="mx-auto grid max-w-[880px] gap-12 px-4 py-10 sm:px-6">
@@ -126,7 +127,7 @@ export function ManagedArtistPublicPage({ artist, events, media }: { artist: Pub
               {filtered.map((event) => (
                 <li key={event.id}>
                   <Link to="/artistas/$slug/eventos/$eventSlug" params={{ slug: artist.slug, eventSlug: event.slug }} className="block rounded-2xl hover:[&>.pi-ticket]:border-ink-soft">
-                    <Ingresso start={event.starts_at} title={event.title} place={[event.venue, [event.city, event.state].filter(Boolean).join(" – ")].filter(Boolean).join(", ") || "Local a confirmar"} accent={accent} status={event.status === "cancelled" ? "cancelled" : undefined} />
+                    <Ingresso start={event.starts_at} end={event.ends_at} title={event.title} place={[event.venue, [event.city, event.state].filter(Boolean).join(" – ")].filter(Boolean).join(", ") || "Local a confirmar"} accent={accent} status={event.status === "cancelled" ? "cancelled" : undefined} />
                   </Link>
                 </li>
               ))}
@@ -155,7 +156,7 @@ export function ManagedEventPublicPage({ artist, event }: { artist: PublicManage
   if (!artist || !event) return <NotFound />;
   const url = typeof window === "undefined" ? `https://agenda.efcsys.com/artistas/${artist.slug}/eventos/${event.slug}` : window.location.href;
   const copy = async () => { await navigator.clipboard.writeText(window.location.href); toast.success("Link do evento copiado."); };
-  const when = formatDateTime(event.starts_at);
+  const when = formatWhen(event.starts_at, event.ends_at);
   return <div className="min-h-dvh bg-paper text-ink">
     <header className="pi-stage relative isolate overflow-hidden bg-stage text-white">
       {(event.banner_url || artist.cover_url) && <img src={event.banner_url || artist.cover_url || ""} alt="" className="pi-duotone absolute inset-0 -z-10 h-full w-full object-cover opacity-35" />}
@@ -194,4 +195,17 @@ export function ManagedEventPublicPage({ artist, event }: { artist: PublicManage
 function NotFound() { return <main className="grid min-h-dvh place-items-center bg-paper px-5 text-center"><div><img src={logoUrl} alt="" className="mx-auto mb-6 h-14 w-14 rounded-full border border-line bg-white" /><h1 className="page-title">Página não encontrada</h1><p className="mt-2 text-muted-foreground">Esta página não está publicada ou não existe.</p></div></main>; }
 function normalizePhone(value: string) { const digits = value.replace(/\D/g, ""); return digits.length <= 11 ? `55${digits}` : digits; }
 function normalizeUrl(value: string) { return /^https?:\/\//i.test(value) ? value : `https://${value}`; }
-function formatDateTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(new Date(value)); }
+const TZ = "America/Sao_Paulo";
+const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
+const hour = (d: Date) => new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).format(d).replace(":00", "h").replace(":", "h");
+/** "sábado, 28 de novembro de 2026, das 21h às 01h (domingo, 29)" */
+function formatWhen(startIso: string, endIso?: string | null) {
+  const start = new Date(startIso);
+  const date = new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, dateStyle: "full" }).format(start);
+  const end = endIso ? new Date(endIso) : null;
+  if (!end || Number.isNaN(end.getTime()) || end <= start) return `${date}, às ${hour(start)}`;
+  const nextDay = dayKey(end) !== dayKey(start)
+    ? ` (${new Intl.DateTimeFormat("pt-BR", { timeZone: TZ, weekday: "long", day: "numeric" }).format(end).replace("-feira", "")})`
+    : "";
+  return `${date}, das ${hour(start)} às ${hour(end)}${nextDay}`;
+}

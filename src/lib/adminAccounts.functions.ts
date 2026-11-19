@@ -68,6 +68,7 @@ export const setAdminAccountActive = createServerFn({ method: "POST" })
     const db = await requireMediumAdmin(data.id, context.userId);
     const { error } = await db.auth.admin.updateUserById(data.id, { ban_duration: data.active ? "none" : "876000h" });
     if (error) throw error;
+    (await import("@/server/roles.server")).forgetRoles(data.id);
     return { ok: true };
   });
 
@@ -89,5 +90,6 @@ export const deleteAdminAccount = createServerFn({ method: "POST" })
     }
     const { error } = await db.auth.admin.deleteUser(data.id);
     if (error) throw new Error("Artistas transferidos ao Master, mas a exclusão da conta falhou. Tente novamente.");
+    (await import("@/server/roles.server")).forgetRoles(data.id);
     return { ok: true };
   });

@@ -19,7 +19,27 @@ async function admin() {
   return supabaseAdmin;
 }
 
-export async function getRoles(userId: string): Promise<RoleInfo> {
+// Roles are read several times per request (guard + permission helpers). A short
+// cache avoids repeating the two Supabase round-trips; a block still takes effect
+// within ROLE_TTL_MS.
+const ROLE_TTL_MS = 15_000;
+const roleCache = new Map<string, { at: number; value: Promise<RoleInfo> }>();
+
+export function getRoles(userId: string): Promise<RoleInfo> {
+  const hit = roleCache.get(userId);
+  if (hit && Date.now() - hit.at < ROLE_TTL_MS) return hit.value;
+  const value = loadRoles(userId).catch((error) => { roleCache.delete(userId); throw error; });
+  roleCache.set(userId, { at: Date.now(), value });
+  if (roleCache.size > 500) roleCache.delete(roleCache.keys().next().value as string);
+  return value;
+}
+
+/** Call after changing someone's roles or blocking an account. */
+export function forgetRoles(userId?: string) {
+  if (userId) roleCache.delete(userId); else roleCache.clear();
+}
+
+async function loadRoles(userId: string): Promise<RoleInfo> {
   const db = await admin();
   const { data } = await db.from("user_roles").select("role").eq("user_id", userId);
   const roles = new Set((data ?? []).map((r: any) => String(r.role)));

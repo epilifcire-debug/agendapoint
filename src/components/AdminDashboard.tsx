@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { getAdminStats, listArtistsForAdmin } from "@/lib/adminArtists.functions";
-import { listArtistsAgenda } from "@/lib/admin.functions";
+import { getAdminStats } from "@/lib/adminArtists.functions";
+import { listAgendaOwners, listArtistsAgenda } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
-import { EmptyState, Ingresso, PageHeader, SummaryRows, accentFor } from "@/components/brand";
+import { EmptyState, Ingresso, IngressoSkeleton, PageHeader, SummaryRows, accentFor } from "@/components/brand";
 import { EventDrawer, eventStatusKind } from "@/components/EventDrawer";
 import { GOOGLE_ENABLED } from "@/lib/features";
 
@@ -16,29 +16,31 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function AdminDashboard() {
   const statsFn = useServerFn(getAdminStats);
-  const artistsFn = useServerFn(listArtistsForAdmin);
+  const ownersFn = useServerFn(listAgendaOwners);
   const agendaFn = useServerFn(listArtistsAgenda);
   const [drawer, setDrawer] = useState(false);
 
   const stats = useQuery({ queryKey: ["admin-stats"], queryFn: () => statsFn() });
-  const artists = useQuery({ queryKey: ["admin-artists-full"], queryFn: () => artistsFn() });
+  const artists = useQuery({ queryKey: ["agenda-owners"], queryFn: () => ownersFn() });
 
-  const ids = (artists.data?.artists ?? []).map((a) => a.id);
+  const ids = (artists.data?.owners ?? []).map((a) => a.id);
   const now = new Date();
-  const month = now.getMonth();
   const year = now.getFullYear();
 
   const agenda = useQuery({
-    queryKey: ["admin-dash-agenda", month, year, ids.join(",")],
-    queryFn: () => agendaFn({ data: { artistIds: ids, month, year } }),
+    queryKey: ["admin-dash-agenda", year, ids.join(",")],
+    queryFn: () => agendaFn({ data: { artistIds: ids, month: -1, year } }),
     enabled: ids.length > 0,
   });
 
-  const events = agenda.data?.events ?? [];
-  const upcoming = events.filter((e) => {
-    const d = new Date(e.start);
-    return !Number.isNaN(d.getTime()) && d >= new Date(now.toDateString());
-  }).slice(0, 5);
+  const all = agenda.data?.events ?? [];
+  const monthKey = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" });
+  const events = all.filter((e) => monthKey.format(new Date(e.start)) === monthKey.format(now));
+  const startOfToday = new Date(now.toDateString());
+  const upcoming = all
+    .filter((e) => { const d = new Date(e.start); return !Number.isNaN(d.getTime()) && d >= startOfToday && eventStatusKind(e) !== "cancelled"; })
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .slice(0, 5);
   const count = (kind: string) => events.filter((e) => eventStatusKind(e) === kind).length;
   const loading = artists.isLoading || (ids.length > 0 && agenda.isLoading);
 
@@ -54,18 +56,16 @@ export function AdminDashboard() {
         <section>
           <h2 className="section-title mb-3">Próximos shows</h2>
           {loading ? (
-            <div className="grid gap-3" aria-busy>
-              {[0, 1, 2].map((i) => <div key={i} className="h-[118px] animate-pulse rounded-2xl border border-line bg-sheet" />)}
-            </div>
+            <IngressoSkeleton />
           ) : upcoming.length === 0 ? (
-            <EmptyState title={`Nenhum show em ${monthName()}`} actions={<Button onClick={() => setDrawer(true)}><Plus /> Adicionar show</Button>}>
+            <EmptyState title="Nenhum show marcado" actions={<Button onClick={() => setDrawer(true)}><Plus /> Adicionar show</Button>}>
               Os shows que você adicionar aparecem aqui e na página pública de cada artista.
             </EmptyState>
           ) : (
             <ul className="grid gap-3">
               {upcoming.map((e) => (
                 <li key={e.id}>
-                  <Ingresso start={e.start} title={e.summary} place={e.location} artist={e.artistName} status={eventStatusKind(e)} accent={accentFor(e.artistId)} />
+                  <Ingresso start={e.start} end={e.end} title={e.summary} place={e.location} artist={e.artistName} status={eventStatusKind(e)} accent={accentFor(e.artistId)} />
                 </li>
               ))}
             </ul>

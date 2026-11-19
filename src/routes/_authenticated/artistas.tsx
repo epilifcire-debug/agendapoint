@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/artistas")({
   ] }),
 });
 
-const input = "w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
+const input = "block w-full min-w-0 max-w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
 const AV_BG = { pink: "bg-pink", teal: "bg-teal", orange: "bg-orange", violet: "bg-violet" } as const;
 const fields = ["artist_name", "slug", "bio", "genre", "city", "state", "phone", "whatsapp", "contact_email", "instagram", "spotify", "youtube", "tiktok", "sua_musica", "twitter", "soundcloud"] as const;
 type ArtistField = typeof fields[number];
@@ -39,7 +39,7 @@ const localDateTime = (value: string) => { const date = new Date(value); return 
 const slugify = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const statuses: Record<ManagedArtist["status"], string> = { draft: "Rascunho", published: "Publicado", hidden: "Oculto", archived: "Arquivado" };
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="grid gap-2 text-sm font-medium"><span>{label}</span>{children}</label>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="grid min-w-0 gap-2 text-sm font-medium"><span>{label}</span>{children}</label>; }
 
 function ArtistsPage() {
   const qc = useQueryClient();
@@ -57,7 +57,7 @@ function ArtistsPage() {
   const prepareFn = useServerFn(prepareManagedUpload);
   const confirmFn = useServerFn(confirmManagedUpload);
   const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => adminFn() });
-  const artists = useQuery({ queryKey: ["managed-artists"], queryFn: () => listFn(), enabled: admin.data?.isAdmin === true });
+  const artists = useQuery({ queryKey: ["managed-artists"], queryFn: () => listFn(), enabled: admin.data?.isAdmin !== false });
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -68,11 +68,12 @@ function ArtistsPage() {
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaKind, setMediaKind] = useState<"image" | "video">("video");
   const [busy, setBusy] = useState(false);
+  const [createStatus, setCreateStatus] = useState<ManagedArtist["status"]>("published");
   const selected = artists.data?.artists.find(a => a.id === selectedId);
   const events = useQuery({ queryKey: ["managed-events", selectedId], queryFn: () => eventsFn({ data: { artistId: selectedId ?? "" } }), enabled: !!selectedId });
   const media = useQuery({ queryKey: ["managed-media", selectedId], queryFn: () => mediaFn({ data: { artistId: selectedId ?? "" } }), enabled: !!selectedId });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["managed-artists"] });
-  const refreshEvents = async () => { await Promise.all([qc.invalidateQueries({ queryKey: ["managed-events", selectedId] }), qc.invalidateQueries({ queryKey: ["admin-agenda"] })]); };
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ["managed-artists"] }), qc.invalidateQueries({ queryKey: ["agenda-owners"] }), qc.invalidateQueries({ queryKey: ["admin-stats"] })]);
+  const refreshEvents = async () => { await Promise.all([qc.invalidateQueries({ queryKey: ["managed-events", selectedId] }), qc.invalidateQueries({ queryKey: ["admin-agenda"] }), qc.invalidateQueries({ queryKey: ["admin-dash-agenda"] })]); };
   const refreshMedia = () => qc.invalidateQueries({ queryKey: ["managed-media", selectedId] });
   const run = async (action: () => Promise<void>) => { setBusy(true); try { await action(); } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível concluir a ação."); } finally { setBusy(false); } };
   const link = (artist: ManagedArtist) => `${window.location.origin}/artistas/${artist.slug}`;
@@ -92,10 +93,9 @@ function ArtistsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | ManagedArtist["status"]>("all");
   const openArtist = (a: ManagedArtist, t: "profile" | "events" | "gallery" = "profile") => { setSelectedId(a.id); setCreating(false); setTab(t); setForm(artistForm(a)); setEvent(emptyEvent()); setEventId(null); window.scrollTo({ top: 0 }); };
   const closeEditor = () => { setCreating(false); setSelectedId(null); };
-  const saveArtist = () => run(async () => { const data = { ...form, ...Object.fromEntries(fields.filter(key => !["artist_name", "slug"].includes(key)).map(key => [key, form[key].trim() || null])), artist_name: form.artist_name.trim(), slug: form.slug.trim() }; if (selectedId) await updateFn({ data: { id: selectedId, ...data } }); else { const created = await createFn({ data }); setSelectedId(created.id); setCreating(false); } await refresh(); toast.success("Artista salvo."); });
+  const saveArtist = () => run(async () => { const data = { ...form, ...Object.fromEntries(fields.filter(key => !["artist_name", "slug"].includes(key)).map(key => [key, form[key].trim() || null])), artist_name: form.artist_name.trim(), slug: form.slug.trim() }; if (selectedId) await updateFn({ data: { id: selectedId, ...data } }); else { const created = await createFn({ data: { ...data, status: createStatus } }); setSelectedId(created.id); setCreating(false); } await refresh(); toast.success("Artista salvo."); });
 
-  if (admin.isLoading) return <div className="h-40 animate-pulse rounded-[10px] bg-sheet" aria-busy />;
-  if (!admin.data?.isAdmin) return <EmptyState title="Área dos administradores">Peça acesso ao Administrador Master para gerenciar artistas.</EmptyState>;
+  if (admin.data && !admin.data.isAdmin) return <EmptyState title="Área dos administradores">Peça acesso ao Administrador Master para gerenciar artistas.</EmptyState>;
 
   /* ---------- Edição ---------- */
   if (creating || selectedId) {
@@ -115,8 +115,9 @@ function ArtistsPage() {
 
       {tab === "profile" && <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <form id="artist-form" onSubmit={e => { e.preventDefault(); saveArtist(); }} className="panel grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
-          {fields.map(key => <div key={key} className={key === "bio" ? "sm:col-span-2" : ""}><Field label={labels[key]}>{key === "bio" ? <textarea rows={4} className={input} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} /> : <input className={input} value={form[key]} required={key === "artist_name" || key === "slug"} type={key === "contact_email" ? "email" : "text"} inputMode={key === "phone" || key === "whatsapp" ? "tel" : undefined} maxLength={key === "state" ? 2 : undefined} onChange={e => setForm(f => ({ ...f, [key]: e.target.value, ...(key === "artist_name" && !selectedId && !f.slug ? { slug: slugify(e.target.value) } : {}) }))} />}{key === "slug" && <span className="text-xs font-normal text-ink-soft">{typeof window !== "undefined" ? window.location.host : "agenda.efcsys.com"}/artistas/{form.slug || "nome-do-artista"}</span>}</Field></div>)}
+          {fields.map(key => <div key={key} className={key === "bio" ? "sm:col-span-2" : ""}><Field label={labels[key]}>{key === "bio" ? <textarea rows={4} className={input} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} /> : <input className={input} value={form[key]} required={key === "artist_name" || key === "slug"} type={key === "contact_email" ? "email" : "text"} inputMode={key === "phone" || key === "whatsapp" ? "tel" : undefined} maxLength={key === "state" ? 2 : undefined} onChange={e => setForm(f => ({ ...f, [key]: key === "slug" ? e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") : e.target.value, ...(key === "artist_name" && !selectedId && (!f.slug || f.slug === slugify(f.artist_name)) ? { slug: slugify(e.target.value) } : {}) }))} />}{key === "slug" && <span className="text-xs font-normal text-ink-soft">{typeof window !== "undefined" ? window.location.host : "agenda.efcsys.com"}/artistas/{form.slug || "nome-do-artista"}</span>}</Field></div>)}
           <label className="flex items-center gap-3 text-sm sm:col-span-2"><input type="checkbox" className="h-5 w-5 accent-[var(--violet)]" checked={form.show_booking_contact} onChange={e => setForm(f => ({ ...f, show_booking_contact: e.target.checked }))} /> Mostrar contato para contratação na página pública</label>
+          {creating && !selected && <label className="grid gap-2 text-sm font-medium sm:col-span-2">Situação<select className={input} value={createStatus} onChange={e => setCreateStatus(e.target.value as ManagedArtist["status"])}><option value="published">Publicado (página no ar)</option><option value="draft">Rascunho (só a equipe vê)</option></select></label>}
           {selected && <label className="grid gap-2 text-sm font-medium sm:col-span-2">Situação<select className={input} value={selected.status} disabled={busy} onChange={e => run(async () => { await statusFn({ data: { id: selected.id, status: e.target.value as ManagedArtist["status"] } }); await refresh(); toast.success("Situação atualizada."); })}>{Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>}
         </form>
         <aside className="grid content-start gap-3">
@@ -133,7 +134,7 @@ function ArtistsPage() {
         <section className="grid content-start gap-3">
           <h2 className="section-title">Shows de {selected.artist_name}</h2>
           {events.isLoading ? <div className="h-28 animate-pulse rounded-2xl bg-sheet" /> : !events.data?.events.length ? <EmptyState title="Nenhum show cadastrado">Os shows publicados aparecem na página pública do artista.</EmptyState> :
-            <ul className="grid gap-3">{events.data.events.map(item => <li key={item.id}><Ingresso start={item.starts_at} title={item.title} place={[item.venue, [item.city, item.state].filter(Boolean).join(" – ")].filter(Boolean).join(", ")} status={item.status === "cancelled" ? "cancelled" : item.is_published ? "published" : "draft"} accent={accentFor(selected.id)} actions={<>
+            <ul className="grid gap-3">{events.data.events.map(item => <li key={item.id}><Ingresso start={item.starts_at} end={item.ends_at} title={item.title} place={[item.venue, [item.city, item.state].filter(Boolean).join(" – ")].filter(Boolean).join(", ")} status={item.status === "cancelled" ? "cancelled" : item.is_published ? "published" : "draft"} accent={accentFor(selected.id)} actions={<>
               <IconButton label="Editar show" onClick={() => { setEvent(eventForm(item)); setEventId(item.id); }}><Pencil className="h-[18px] w-[18px]" /></IconButton>
               {item.is_published && selected.status === "published" && <a className="grid h-10 w-10 place-items-center rounded-md text-ink-soft hover:bg-paper hover:text-ink" aria-label={`Abrir página de ${item.title}`} title="Abrir página do show" href={`/artistas/${selected.slug}/eventos/${item.slug}`} target="_blank" rel="noreferrer"><ExternalLink className="h-[18px] w-[18px]" /></a>}
               <IconButton label="Excluir show" disabled={busy} onClick={() => { if (window.confirm(`Excluir o show "${item.title}"? Ele sai da agenda e da página pública.`)) run(async () => { await removeEventFn({ data: { id: item.id } }); if (eventId === item.id) { setEventId(null); setEvent(emptyEvent()); } await refreshEvents(); toast.success("Show excluído."); }); }}><Trash2 className="h-[18px] w-[18px]" /></IconButton>
@@ -141,7 +142,7 @@ function ArtistsPage() {
         </section>
         <form onSubmit={e => { e.preventDefault(); run(async () => { const result = await saveEventFn({ data: { artist_id: selected.id, ...(eventId ? { id: eventId } : {}), ...Object.fromEntries(eventFields.filter(key => !["title", "slug", "starts_at", "ends_at"].includes(key)).map(key => [key, event[key].trim() || null])), title: event.title.trim(), slug: event.slug.trim(), starts_at: new Date(event.starts_at).toISOString(), ends_at: event.ends_at ? new Date(event.ends_at).toISOString() : null, status: event.status, is_published: event.is_published } }); setEventId(result.id); await refreshEvents(); toast.success("Show salvo."); }); }} className="panel grid content-start gap-4 p-5 sm:grid-cols-2 sm:p-6">
           <h2 className="section-title sm:col-span-2">{eventId ? `Editar ${editingEvent?.title ?? "show"}` : "Adicionar show"}</h2>
-          {eventFields.map(key => <div key={key} className={key === "description" || key === "title" ? "sm:col-span-2" : ""}><Field label={eventLabels[key]}>{key === "description" ? <textarea className={input} rows={3} value={event[key]} onChange={e => setEvent(f => ({ ...f, [key]: e.target.value }))} /> : <input className={input} type={key === "starts_at" || key === "ends_at" ? "datetime-local" : key === "maps_url" || key === "ticket_url" ? "url" : "text"} required={key === "title" || key === "slug" || key === "starts_at"} value={event[key]} onChange={e => setEvent(f => ({ ...f, [key]: e.target.value, ...(key === "title" && !eventId && !f.slug ? { slug: slugify(e.target.value) } : {}) }))} />}</Field></div>)}
+          {eventFields.map(key => <div key={key} className={key === "description" || key === "title" ? "sm:col-span-2" : ""}><Field label={eventLabels[key]}>{key === "description" ? <textarea className={input} rows={3} value={event[key]} onChange={e => setEvent(f => ({ ...f, [key]: e.target.value }))} /> : <input className={input} type={key === "starts_at" || key === "ends_at" ? "datetime-local" : key === "maps_url" || key === "ticket_url" ? "url" : "text"} required={key === "title" || key === "slug" || key === "starts_at"} value={event[key]} onChange={e => setEvent(f => ({ ...f, [key]: e.target.value, ...(key === "title" && !eventId && (!f.slug || f.slug === slugify(f.title)) ? { slug: slugify(e.target.value) } : {}) }))} />}</Field></div>)}
           <Field label="Situação"><select className={input} value={event.status} onChange={e => setEvent(f => ({ ...f, status: e.target.value as EventForm["status"] }))}><option value="scheduled">Agendado</option><option value="completed">Realizado</option><option value="cancelled">Cancelado</option></select></Field>
           <label className="flex items-center gap-3 self-end pb-3 text-sm"><input type="checkbox" className="h-5 w-5 accent-[var(--violet)]" checked={event.is_published} onChange={e => setEvent(f => ({ ...f, is_published: e.target.checked }))} /> Publicar na página do artista</label>
           {eventId && <div className="sm:col-span-2"><UploadField label="Arte do show" src={editingEvent?.banner_url} disabled={busy} onFile={file => run(() => upload(file, "banner", eventId))} /></div>}
@@ -172,12 +173,12 @@ function ArtistsPage() {
   const list = all.filter(a => (statusFilter === "all" || a.status === statusFilter) && `${a.artist_name} ${a.slug} ${a.city ?? ""} ${a.genre ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   const published = all.filter(a => a.status === "published").length;
   return <div>
-    <PageHeader title="Artistas" description={artists.data ? `${all.length} artista${all.length === 1 ? "" : "s"} · ${published} publicado${published === 1 ? "" : "s"}` : undefined} actions={<Button onClick={() => { setCreating(true); setSelectedId(null); setForm(emptyArtist()); setTab("profile"); }}><Plus /> Novo artista</Button>} />
+    <PageHeader title="Artistas" description={artists.data ? `${all.length} artista${all.length === 1 ? "" : "s"}, ${published} publicado${published === 1 ? "" : "s"}` : <span className="inline-block h-[1lh] w-40 animate-pulse rounded bg-line align-middle" aria-hidden />} actions={<Button onClick={() => { setCreating(true); setSelectedId(null); setForm(emptyArtist()); setTab("profile"); }}><Plus /> Novo artista</Button>} />
     <div className="mb-5 flex flex-wrap items-end gap-3">
       <label className="grid min-w-[220px] flex-1 gap-2 text-sm font-medium sm:max-w-sm">Buscar artista<span className="relative"><Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-soft" /><input className={`${input} w-full pl-9`} placeholder="Nome, cidade ou gênero" value={search} onChange={e => setSearch(e.target.value)} /></span></label>
       <label className="grid gap-2 text-sm font-medium">Situação<select className={input} value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}><option value="all">Todas</option>{Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
     </div>
-    {artists.isLoading ? <div className="panel h-64 animate-pulse" aria-busy /> : artists.isError ? <EmptyState title="Não foi possível carregar os artistas" actions={<Button variant="outline" onClick={() => refresh()}>Tentar de novo</Button>}>Verifique a conexão e tente de novo.</EmptyState> : !all.length ? <EmptyState title="Nenhum artista ainda" actions={<Button onClick={() => { setCreating(true); setForm(emptyArtist()); setTab("profile"); }}><Plus /> Novo artista</Button>}>Cada artista ganha uma página pública com a agenda de shows.</EmptyState> : !list.length ? <EmptyState title="Nenhum artista encontrado" actions={<Button variant="outline" onClick={() => { setSearch(""); setStatusFilter("all"); }}>Limpar filtros</Button>}>Nenhum artista corresponde à busca.</EmptyState> :
+    {artists.isLoading ? <ListSkeleton /> : artists.isError ? <EmptyState title="Não foi possível carregar os artistas" actions={<Button variant="outline" onClick={() => refresh()}>Tentar de novo</Button>}>Verifique a conexão e tente de novo.</EmptyState> : !all.length ? <EmptyState title="Nenhum artista ainda" actions={<Button onClick={() => { setCreating(true); setForm(emptyArtist()); setTab("profile"); }}><Plus /> Novo artista</Button>}>Cada artista ganha uma página pública com a agenda de shows.</EmptyState> : !list.length ? <EmptyState title="Nenhum artista encontrado" actions={<Button variant="outline" onClick={() => { setSearch(""); setStatusFilter("all"); }}>Limpar filtros</Button>}>Nenhum artista corresponde à busca.</EmptyState> :
       <ul className="panel divide-y divide-line">{list.map(a => <li key={a.id} className="flex items-center gap-4 px-4 py-3.5 sm:px-5">
         {a.avatar_url ? <img className="h-11 w-11 shrink-0 rounded-full object-cover" alt="" src={a.avatar_url} /> : <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full font-poster text-lg font-bold text-white ${AV_BG[accentFor(a.id)]}`}>{a.artist_name.slice(0, 1).toUpperCase()}</span>}
         <button type="button" onClick={() => openArtist(a)} className="min-w-0 flex-1 text-left"><span className="block truncate font-medium">{a.artist_name}</span><span className="block truncate text-sm text-ink-soft">{[a.genre, [a.city, a.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || `/${a.slug}`}</span></button>
@@ -193,4 +194,8 @@ function ArtistsPage() {
 
 function UploadField({ label, src, disabled, onFile }: { label: string; src?: string | null; disabled: boolean; onFile: (file: File) => void }) {
   return <label className={`flex cursor-pointer items-center gap-3 rounded-md border border-line bg-sheet p-2 pr-3 text-sm font-medium hover:border-ink-soft ${disabled ? "pointer-events-none opacity-50" : ""}`}>{src ? <img src={src} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" /> : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-paper text-ink-soft"><ImagePlus className="h-[18px] w-[18px]" /></span>}<span>{label}</span><input type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled} className="sr-only" onChange={e => { const file = e.target.files?.[0]; if (file) onFile(file); e.target.value = ""; }} /></label>;
+}
+
+function ListSkeleton() {
+  return <ul className="panel divide-y divide-line" aria-busy aria-label="Carregando artistas">{[0, 1, 2, 3].map(i => <li key={i} className="flex items-center gap-4 px-4 py-3.5 sm:px-5"><span className="h-11 w-11 shrink-0 animate-pulse rounded-full bg-line" /><span className="grid flex-1 gap-2"><span className="h-4 w-40 animate-pulse rounded bg-line" /><span className="h-3 w-28 animate-pulse rounded bg-line/70" /></span></li>)}</ul>;
 }

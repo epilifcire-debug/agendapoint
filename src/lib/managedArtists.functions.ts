@@ -96,23 +96,22 @@ async function addSignedUrls<T extends object>(
   fields: Array<[keyof T, string]>,
 ) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return Promise.all(rows.map(async (row) => {
+  const isStoragePath = (v: unknown): v is string => typeof v === "string" && !!v && !/^https?:\/\//i.test(v);
+  const paths = Array.from(new Set(rows.flatMap((row) => fields.map(([f]) => row[f] as unknown).filter(isStoragePath))));
+  const signed = new Map<string, string>();
+  if (paths.length) {
+    // One request for every image instead of one per file.
+    const { data } = await supabaseAdmin.storage.from("avatars").createSignedUrls(paths, 60 * 60 * 24 * 7);
+    for (const item of data ?? []) if (item.path && item.signedUrl) signed.set(item.path, item.signedUrl);
+  }
+  return rows.map((row) => {
     const additions: Record<string, string | null> = {};
     for (const [pathField, urlField] of fields) {
       const path = row[pathField];
-      if (typeof path !== "string" || !path) {
-        additions[urlField] = null;
-        continue;
-      }
-      if (/^https?:\/\//i.test(path)) {
-        additions[urlField] = path;
-        continue;
-      }
-      const { data } = await supabaseAdmin.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 7);
-      additions[urlField] = data?.signedUrl ?? null;
+      additions[urlField] = typeof path !== "string" || !path ? null : isStoragePath(path) ? signed.get(path) ?? null : path;
     }
     return { ...row, ...additions };
-  }));
+  });
 }
 
 export const listManagedArtists = createServerFn({ method: "GET" })
@@ -132,13 +131,13 @@ export const listManagedArtists = createServerFn({ method: "GET" })
 
 export const createManagedArtist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => artistFields.parse(input))
+  .validator((input: unknown) => artistFields.extend({ status: statusSchema.optional() }).parse(input))
   .handler(async ({ data, context }) => {
     const { assertAdmin } = await import("@/server/adminGuard.server");
     await assertAdmin(context.supabase, context.userId);
     const { data: artist, error } = await context.supabase
       .from("managed_artists")
-      .insert({ ...data, owner_admin_id: context.userId, status: "draft" })
+      .insert({ ...data, owner_admin_id: context.userId, status: data.status ?? "draft" })
       .select("id")
       .single();
     if (error) throw new Error(error.code === "23505" ? "Este endereço público já está em uso." : error.message);

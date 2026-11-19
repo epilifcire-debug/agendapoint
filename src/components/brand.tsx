@@ -126,6 +126,7 @@ function dateParts(iso: string) {
 
 export function Ingresso({
   start,
+  end,
   title,
   place,
   artist,
@@ -136,6 +137,7 @@ export function Ingresso({
   className,
 }: {
   start: string;
+  end?: string | null;
   title: string;
   place?: string | null;
   artist?: string | null;
@@ -146,7 +148,8 @@ export function Ingresso({
   className?: string;
 }) {
   const p = dateParts(start);
-  const line = [p.time, place].filter(Boolean).join(" · ");
+  const endTime = end && end !== start && !/^\d{4}-\d{2}-\d{2}$/.test(end) ? dateParts(end).time : "";
+  const line = [p.time && endTime && endTime !== p.time ? `${p.time} às ${endTime}` : p.time, place].filter(Boolean).join(" · ");
   return (
     <div className={cn("pi-ticket", className)} data-accent={accent} style={onSheet ? ({ ["--notch-bg" as string]: "var(--sheet)" } as React.CSSProperties) : undefined}>
       <div className="pi-ticket__stub" aria-hidden>
@@ -169,6 +172,24 @@ export function Ingresso({
         )}
       </div>
     </div>
+  );
+}
+
+/** Placeholder com o formato do Ingresso, para listas carregando. */
+export function IngressoSkeleton({ count = 3, label = "Carregando shows" }: { count?: number; label?: string }) {
+  return (
+    <ul className="grid gap-3" aria-busy aria-label={label}>
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} className="flex h-[118px] overflow-hidden rounded-2xl border border-line bg-sheet">
+          <span className="w-[88px] shrink-0 animate-pulse border-r border-dashed border-line bg-line/50" />
+          <span className="grid flex-1 content-center gap-2.5 px-5">
+            <span className="h-5 w-1/2 animate-pulse rounded bg-line" />
+            <span className="h-3.5 w-2/3 animate-pulse rounded bg-line/70" />
+            <span className="h-3.5 w-1/4 animate-pulse rounded bg-line/70" />
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { listManagedArtists, saveManagedEvent } from "@/lib/managedArtists.functions";
 
 const slugify = (value: string) => value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-const field = "min-h-11 w-full rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
+const field = "block min-h-11 w-full min-w-0 max-w-full rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
 
-type Form = { artist_id: string; title: string; date: string; time: string; venue: string; city: string; state: string; ticket_url: string; publish: boolean };
-const empty = (artistId = ""): Form => ({ artist_id: artistId, title: "", date: "", time: "21:00", venue: "", city: "", state: "", ticket_url: "", publish: false });
+type Form = { artist_id: string; title: string; date: string; time: string; end_time: string; venue: string; city: string; state: string; ticket_url: string; publish: boolean };
+const empty = (artistId = ""): Form => ({ artist_id: artistId, title: "", date: "", time: "21:00", end_time: "", venue: "", city: "", state: "", ticket_url: "", publish: false });
 
 /** Painel lateral para adicionar um show sem sair da tela atual. */
 export function EventDrawer({ open, onOpenChange, defaultArtistId }: { open: boolean; onOpenChange: (open: boolean) => void; defaultArtistId?: string }) {
@@ -55,13 +55,20 @@ export function EventDrawer({ open, onOpenChange, defaultArtistId }: { open: boo
     setSaving(true);
     try {
       const startsAt = new Date(`${form.date}T${form.time || "00:00"}:00-03:00`).toISOString();
+      // Término antes do início = madrugada do dia seguinte (ex.: 21h às 01h).
+      let endsAt: string | null = null;
+      if (form.end_time) {
+        const end = new Date(`${form.date}T${form.end_time}:00-03:00`);
+        if (end.getTime() <= new Date(startsAt).getTime()) end.setUTCDate(end.getUTCDate() + 1);
+        endsAt = end.toISOString();
+      }
       await saveFn({
         data: {
           artist_id: form.artist_id,
           title: form.title.trim(),
           slug: `${slugify(form.title)}-${form.date.replaceAll("-", "")}`.slice(0, 80),
           starts_at: startsAt,
-          ends_at: null,
+          ends_at: endsAt,
           venue: form.venue.trim() || null,
           city: form.city.trim() || null,
           state: form.state.trim().toUpperCase() || null,
@@ -112,16 +119,20 @@ export function EventDrawer({ open, onOpenChange, defaultArtistId }: { open: boo
               <input id="ev-title" className={field} value={form.title} onChange={set("title")} onBlur={() => setTouched((t) => ({ ...t, title: true }))} aria-invalid={!!show("title")} placeholder="Festival de Verão" />
               {show("title") && <span className="text-sm font-normal text-pink-ink">{show("title")}</span>}
             </label>
+            <label className="grid min-w-0 gap-2 text-sm font-medium">
+              Data
+              <input id="ev-date" type="date" className={field} value={form.date} onChange={set("date")} onBlur={() => setTouched((t) => ({ ...t, date: true }))} aria-invalid={!!show("date")} />
+              {show("date") && <span className="text-sm font-normal text-pink-ink">{show("date")}</span>}
+            </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-2 text-sm font-medium">
-                Data
-                <input id="ev-date" type="date" className={field} value={form.date} onChange={set("date")} onBlur={() => setTouched((t) => ({ ...t, date: true }))} aria-invalid={!!show("date")} />
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Horário
+              <label className="grid min-w-0 gap-2 text-sm font-medium">
+                Início
                 <input type="time" className={field} value={form.time} onChange={set("time")} />
               </label>
-              {show("date") && <span className="col-span-2 -mt-1 text-sm text-pink-ink">{show("date")}</span>}
+              <label className="grid min-w-0 gap-2 text-sm font-medium">
+                Término (opcional)
+                <input type="time" className={field} value={form.end_time} onChange={set("end_time")} />
+              </label>
             </div>
             <label className="grid gap-2 text-sm font-medium">
               Local

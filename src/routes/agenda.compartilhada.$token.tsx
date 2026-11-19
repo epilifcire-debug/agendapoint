@@ -83,7 +83,7 @@ function SharedAgendaPage() {
         <ul className="grid gap-3">
           {events.map((e) => (
             <li key={e.id}>
-              <Ingresso start={e.start} title={e.summary} place={e.location} artist={e.artistName} accent={accentFor((e as { artistId?: string }).artistId ?? e.artistName)} />
+              <Ingresso start={e.start} end={(e as { end?: string }).end} title={e.summary} place={e.location} artist={e.artistName} accent={accentFor((e as { artistId?: string }).artistId ?? e.artistName)} />
             </li>
           ))}
         </ul>
