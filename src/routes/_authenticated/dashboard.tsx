@@ -129,7 +129,7 @@ function ArtistDashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Painel" title={<>Olá, {artist}</>} description="Resumo da sua página e da sua agenda." />
+      <PageHeader title={<>Olá, {artist}</>} description="Resumo da sua página e da sua agenda." />
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Shows futuros" value={events.data?.events.length ?? (connected.data?.connected ? "…" : "0")} />
@@ -137,7 +137,7 @@ function ArtistDashboard() {
         <StatCard label="Cidade" value={profile.data?.city || "Não informada"} accent="var(--brand-orange)" />
       </div>
       {connected.data?.needsReconnect && (
-        <p role="status" className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+        <p role="status" className="rounded-[10px] border border-orange/40 bg-sheet px-4 py-3 text-sm">
           A conexão antiga com o Google Calendar precisa ser refeita nesta nova versão. Marque o aviso abaixo e clique em <strong>Conectar Google</strong>.
         </p>
       )}
@@ -146,7 +146,7 @@ function ArtistDashboard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="section-title">Integração com Google Calendar</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-ink-soft">
               Conecte sua conta para sincronizar automaticamente os shows na sua página pública.
             </p>
           </div>
@@ -162,7 +162,7 @@ function ArtistDashboard() {
             <button
               onClick={() => connectMut.mutate()}
               disabled={connectMut.isPending || !calendarConsent}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-brand"
+              className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violet"
             >
               <Calendar className="h-4 w-4" /> {connectMut.isPending ? "Abrindo…" : "Conectar Google"}
             </button>
@@ -170,13 +170,13 @@ function ArtistDashboard() {
         </div>
         <div className="mt-3 flex items-center gap-2 text-xs">
           {connected.data?.connected ? (
-            <><CheckCircle2 className="h-4 w-4 text-emerald-500" /> Sincronização ativa</>
+            <><CheckCircle2 className="h-4 w-4 text-teal-ink" /> Sincronização ativa</>
           ) : (
-            <><XCircle className="h-4 w-4 text-muted-foreground" /> Nenhuma conta conectada</>
+            <><XCircle className="h-4 w-4 text-ink-soft" /> Nenhuma conta conectada</>
           )}
         </div>
         {!connected.data?.connected && (
-          <label className="mt-4 flex items-start gap-3 rounded-lg border border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+          <label className="mt-4 flex items-start gap-3 rounded-lg border border-line bg-muted/40 p-3 text-xs leading-relaxed text-ink-soft">
             <input
               type="checkbox"
               checked={calendarConsent}
@@ -202,16 +202,16 @@ function ArtistDashboard() {
       <section className="panel p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <h2 className="section-title">Próximos shows</h2>
-          <span className="text-xs text-muted-foreground">Fonte: Google Calendar</span>
+          <span className="text-xs text-ink-soft">Fonte: Google Calendar</span>
         </div>
         {!connected.data?.connected && (
-          <p className="mt-4 text-sm text-muted-foreground">Conecte sua conta Google para ver os shows aqui.</p>
+          <p className="mt-4 text-sm text-ink-soft">Conecte sua conta Google para ver os shows aqui.</p>
         )}
         {connected.data?.connected && events.isLoading && (
-          <p className="mt-4 text-sm text-muted-foreground">Carregando…</p>
+          <p className="mt-4 text-sm text-ink-soft">Carregando…</p>
         )}
         {events.data && events.data.events.length === 0 && (
-          <p className="mt-4 text-sm text-muted-foreground">Nenhum show futuro no seu calendário.</p>
+          <p className="mt-4 text-sm text-ink-soft">Nenhum show futuro no seu calendário.</p>
         )}
         <ul className="mt-4 divide-y divide-border">
           {events.data?.events.map((e) => (
@@ -229,7 +229,7 @@ function ArtistDashboard() {
                   <Input type="datetime-local" label="Início" value={editForm.startISO} onChange={(v) => setEditForm((f) => ({ ...f, startISO: v }))} required />
                   <Input type="datetime-local" label="Fim" value={editForm.endISO} onChange={(v) => setEditForm((f) => ({ ...f, endISO: v }))} required />
                   <div className="md:col-span-2 flex gap-2">
-                    <button type="submit" disabled={updateMut.isPending} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-brand disabled:opacity-60">
+                    <button type="submit" disabled={updateMut.isPending} className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violetdisabled:opacity-60">
                       {updateMut.isPending ? "Salvando…" : "Salvar"}
                     </button>
                     <button type="button" onClick={() => setEditing(null)} className="rounded-lg border border-input px-4 py-2 text-sm font-semibold hover:bg-muted">Cancelar</button>
@@ -239,20 +239,20 @@ function ArtistDashboard() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold">{e.summary}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-ink-soft">
                       {formatDateRange(e.start, e.end)}
                       {e.location ? ` · ${e.location}` : ""}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => startEdit(e)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <button onClick={() => startEdit(e)} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-ink-soft hover:bg-muted hover:text-foreground">
                       <Pencil className="h-3.5 w-3.5" /> Editar
                     </button>
                     <button
                       onClick={() => {
                         if (confirm(`Cancelar "${e.summary}"? Isso remove o evento do Google Calendar.`)) deleteMut.mutate(e.id);
                       }}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-pink-ink hover:bg-destructive/10"
                     >
                       <Trash2 className="h-3.5 w-3.5" /> Cancelar
                     </button>
@@ -275,7 +275,7 @@ function ArtistDashboard() {
 function SummaryCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="panel p-5">
-      <div className="eyebrow">{label}</div>
+      <div className="text-sm text-ink-soft">{label}</div>
       <div className="mt-1 text-2xl font-bold">{value}</div>
     </div>
   );
@@ -287,7 +287,7 @@ function CreateEventCard({ onCreate }: { onCreate: (d: { summary: string; locati
   return (
     <section className="panel p-5 sm:p-6">
       <h2 className="section-title">Adicionar show</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Cria um evento no seu Google Calendar.</p>
+      <p className="mt-1 text-sm text-ink-soft">Cria um evento no seu Google Calendar.</p>
       <form
         className="mt-4 grid gap-3 md:grid-cols-2"
         onSubmit={async (e) => {
@@ -309,7 +309,7 @@ function CreateEventCard({ onCreate }: { onCreate: (d: { summary: string; locati
         <Input type="datetime-local" label="Início" value={form.startISO} onChange={(v) => setForm((f) => ({ ...f, startISO: v }))} required />
         <Input type="datetime-local" label="Fim" value={form.endISO} onChange={(v) => setForm((f) => ({ ...f, endISO: v }))} required />
         <div className="md:col-span-2">
-          <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-brand disabled:opacity-60">
+          <button type="submit" disabled={saving} className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violetdisabled:opacity-60">
             <Plus className="h-4 w-4" /> {saving ? "Criando…" : "Criar show"}
           </button>
         </div>
@@ -327,7 +327,7 @@ function Input({ label, value, onChange, type = "text", required }: { label: str
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full min-h-11 rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
+        className="w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20"
       />
     </label>
   );

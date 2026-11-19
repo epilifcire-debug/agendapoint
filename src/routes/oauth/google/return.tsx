@@ -66,7 +66,7 @@ function OAuthReturn() {
     <main className="grid min-h-dvh place-items-center bg-background p-8">
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
         <span className="h-10 w-10 animate-spin rounded-full border-2 border-primary/25 border-t-primary" aria-hidden />
-        <p className="text-sm text-muted-foreground" role="status">{message}</p>
+        <p className="text-sm text-ink-soft" role="status">{message}</p>
       </div>
     </main>
   );

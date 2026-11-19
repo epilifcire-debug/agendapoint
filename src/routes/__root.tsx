@@ -20,11 +20,10 @@ function NotFoundComponent() {
   return (
     <div className="grid min-h-dvh place-items-center bg-background px-5">
       <div className="max-w-md text-center">
-        <img src={logoUrl} alt="" className="mx-auto h-16 w-16 rounded-full bg-white" />
-        <p className="eyebrow mt-8 text-primary">Erro 404</p>
-        <h1 className="page-title mt-2">Página não encontrada</h1>
-        <p className="mt-3 text-sm text-muted-foreground">O endereço não existe ou foi movido.</p>
-        <Link to="/" className="mt-8 inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]">
+        <img src={logoUrl} alt="" className="mx-auto h-16 w-16 rounded-full border border-line bg-white" />
+        <h1 className="page-title mt-6">Página não encontrada</h1>
+        <p className="mt-3 text-sm text-ink-soft">O endereço não existe ou foi movido.</p>
+        <Link to="/" className="mt-6 inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-violet">
           Voltar ao início
         </Link>
       </div>
@@ -39,20 +38,19 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="grid min-h-dvh place-items-center bg-background px-5">
       <div className="max-w-md text-center">
-        <p className="eyebrow text-destructive">Algo deu errado</p>
         <h1 className="page-title mt-2">Esta página não carregou</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Tente novamente em instantes ou volte para o início.</p>
+        <p className="mt-3 text-sm text-ink-soft">Tente novamente em instantes ou volte para o início.</p>
         <div className="mt-8 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
+            className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground"
           >
             Tentar novamente
           </button>
-          <a href="/" className="inline-flex h-11 items-center justify-center rounded-full border border-border px-6 text-sm font-semibold hover:bg-muted">
+          <a href="/" className="inline-flex h-11 items-center justify-center rounded-md border border-line bg-sheet px-5 text-sm font-medium hover:bg-muted">
             Início
           </a>
         </div>
@@ -66,10 +64,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#140c26" },
+      { name: "theme-color", content: "#f4f3f7" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Agenda Point" },
       { name: "application-name", content: "Agenda Point" },
       { title: "Agenda Point do Ingresso — Plataforma de agenda de artistas" },

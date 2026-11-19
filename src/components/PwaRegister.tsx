@@ -77,7 +77,7 @@ export function InstallAppButton({ className, label = "Instalar app" }: { classN
         deferredPrompt = null;
         emit();
       }}
-      className={cn("inline-flex items-center gap-2 rounded-full border border-border px-3.5 py-2 text-xs font-semibold transition-colors hover:bg-muted", className)}
+      className={cn("inline-flex h-10 items-center gap-2 rounded-md border border-line px-3 text-sm font-medium text-ink transition-colors hover:border-ink-soft", className)}
     >
       <Download className="h-3.5 w-3.5" /> {label}
     </button>

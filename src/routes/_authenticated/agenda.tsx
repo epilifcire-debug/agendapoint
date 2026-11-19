@@ -1,12 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import * as Dialog from "@radix-ui/react-dialog";
+import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Search, Share2, ShieldAlert, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, ExternalLink, Plus, Search, Share2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EventDrawer, eventStatusKind } from "@/components/EventDrawer";
 import { amIAdmin, listAgendaOwners, listArtistsAgenda } from "@/lib/admin.functions";
 import { createAgendaShare, listAgendaShares, revokeAgendaShare } from "@/lib/agendaShares.functions";
 import { grantAgendaAccess, listAdminPeers, revokeAgendaAccess } from "@/lib/adminAgendaAccess.functions";
-import { PageHeader } from "@/components/brand";
+import { EmptyState, IconButton, Ingresso, PageHeader, accentFor } from "@/components/brand";
 
 
 
@@ -52,6 +56,7 @@ function AgendaPage() {
   const [view, setView] = useState<"month" | "week" | "list">("list");
   const [weekIndex, setWeekIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
 
   useEffect(() => {
     if (!selectionInitialized && artists.data) {
@@ -119,454 +124,202 @@ function AgendaPage() {
     );
   }, [agenda.data, selected.length, q, view, currentWeek, allMonths, city, state, status]);
 
-  if (admin.isLoading) return <EmptyState>Carregando…</EmptyState>;
-
+  if (admin.isLoading) return <div className="h-40 animate-pulse rounded-[10px] bg-sheet" aria-busy />;
   if (!isAdmin) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
-        <ShieldAlert className="mx-auto h-8 w-8 text-muted-foreground" />
-        <h1 className="mt-3 section-title">Área restrita</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Esta página é exclusiva para administradores. Sua agenda está disponível no Painel.
-        </p>
-      </div>
-    );
+    return <EmptyState title="Área dos administradores">Sua agenda está no Painel.</EmptyState>;
   }
 
   const allArtists = (artists.data?.owners ?? []).map((o) => ({
     ...o,
     artist_name: o.kind === "self" ? "Minha agenda" : o.artist_name,
   }));
-
-  const list = artistQ
-    ? allArtists.filter((a) =>
-        `${a.artist_name ?? ""} ${a.handle ?? ""} ${a.city ?? ""} ${a.genre ?? ""}`
-          .toLowerCase()
-          .includes(artistQ.toLowerCase()),
-      )
-    : allArtists;
-  const allSelected = list.length > 0 && list.every((a) => selected.includes(a.id));
+  const groups = filtered.reduce<Array<{ key: string; label: string; items: typeof filtered }>>((acc, e) => {
+    const d = new Date(e.start);
+    const key = Number.isNaN(d.getTime()) ? "?" : `${d.getFullYear()}-${d.getMonth()}`;
+    const label = Number.isNaN(d.getTime()) ? "Sem data" : `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    const g = acc.find((x) => x.key === key);
+    if (g) g.items.push(e); else acc.push({ key, label, items: [e] });
+    return acc;
+  }, []);
+  const hasFilters = !!(q || city || state || status) || selected.length !== allArtists.length;
+  const clearFilters = () => { setQ(""); setCity(""); setState(""); setStatus(""); setSelected(allArtists.map((x) => x.id)); };
+  const periodLabel = allMonths ? `${year}` : `${MONTHS[month].toLowerCase()} de ${year}`;
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader
-        eyebrow="Gestão"
         title="Agenda dos artistas"
-        description="Selecione os artistas e o mês para ver os shows agendados."
-        actions={
-          <button
-            onClick={() => { setLastToken(null); setShareOpen(true); }}
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-brand transition-opacity hover:opacity-90 sm:w-auto"
-          >
-            <Share2 className="h-4 w-4" /> Compartilhar agenda
-          </button>
-        }
+        description="Shows de todos os artistas, em ordem de data."
+        actions={<>
+          <Button variant="outline" onClick={() => { setLastToken(null); setShareOpen(true); }}><Share2 /> Compartilhar agenda</Button>
+          <Button onClick={() => setDrawer(true)}><Plus /> Adicionar show</Button>
+        </>}
       />
 
-      {shareOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-border bg-card p-5 sm:max-w-lg sm:rounded-2xl">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="section-title">Compartilhar agenda</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Gera um link somente leitura, sem necessidade de conta.
-                </p>
-              </div>
-              <button
-                onClick={() => setShareOpen(false)}
-                aria-label="Fechar"
-                className="rounded-lg border border-input p-2 text-muted-foreground hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <dl className="space-y-2 rounded-xl border border-border bg-background p-3 text-sm">
-              <div className="flex flex-wrap justify-between gap-2">
-                <dt className="text-muted-foreground">Período</dt>
-                <dd className="font-semibold">{allMonths ? `Ano inteiro de ${year}` : `${MONTHS[month]} de ${year}`}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">Artistas incluídos ({selected.length})</dt>
-                <dd className="mt-1 flex flex-wrap gap-1.5">
-                  {selected.length === 0 && <span className="text-xs text-muted-foreground">Nenhum artista selecionado</span>}
-                  {allArtists
-                    .filter((a) => selected.includes(a.id))
-                    .map((a) => (
-                      <span key={a.id} className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                        {a.artist_name || a.handle || "Artista"}
-                      </span>
-                    ))}
-                </dd>
-              </div>
-            </dl>
-
-            <div className="mt-4">
-              <div className="mb-2 text-xs font-semibold">Validade</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {([0, 7, 15, 30] as const).map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setExpiresInDays(d)}
-                    className={`rounded-xl border px-3 py-3 text-xs font-semibold transition-colors ${
-                      expiresInDays === d
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {d === 0 ? "Sem expiração" : `${d} dias`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => createShare.mutate()}
-              disabled={selected.length === 0 || createShare.isPending}
-              className="mt-4 w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {createShare.isPending ? "Gerando…" : "Gerar link"}
-            </button>
-            {createShare.isError && (
-              <p className="mt-2 text-xs text-destructive">Não foi possível gerar o link. Tente novamente.</p>
-            )}
-
-            {lastToken && (
-              <div className="mt-4 rounded-xl border border-border bg-background p-3">
-                <div className="break-all text-xs text-muted-foreground">{shareUrl(lastToken)}</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(shareUrl(lastToken));
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      } catch { /* ignore */ }
-                    }}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-input px-3 py-3 text-xs font-semibold hover:bg-muted"
-                  >
-                    <Copy className="h-4 w-4" /> {copied ? "Copiado!" : "Copiar link"}
-                  </button>
-                  <a
-                    href={shareUrl(lastToken)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-input px-3 py-3 text-xs font-semibold hover:bg-muted"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Abrir visualização
-                  </a>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6">
-              <h3 className="eyebrow">Links compartilhados</h3>
-              {shares.isLoading && <p className="mt-2 text-sm text-muted-foreground">Carregando…</p>}
-              {!shares.isLoading && (shares.data?.shares ?? []).length === 0 && (
-                <p className="mt-2 text-sm text-muted-foreground">Nenhum link gerado ainda.</p>
-              )}
-              <ul className="mt-2 space-y-2">
-                {(shares.data?.shares ?? []).map((s) => (
-                  <li key={s.id} className="rounded-xl border border-border p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-semibold">
-                        {s.month === -1 ? `Ano ${s.year}` : `${MONTHS[s.month]} ${s.year}`}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                          s.status === "active" ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {s.status === "active" ? "Ativo" : s.status === "revoked" ? "Revogado" : "Expirado"}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {s.artists.length} artista(s) · criado em {shortDate(s.created_at)}
-                      {s.expires_at ? ` · expira em ${shortDate(s.expires_at)}` : " · sem expiração"}
-                    </p>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                      <button
-                        onClick={() => navigator.clipboard.writeText(shareUrl(s.token)).catch(() => {})}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-input px-2 py-2.5 text-xs font-semibold hover:bg-muted"
-                      >
-                        <Copy className="h-3.5 w-3.5" /> Copiar
-                      </button>
-                      <a
-                        href={shareUrl(s.token)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-input px-2 py-2.5 text-xs font-semibold hover:bg-muted"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> Abrir
-                      </a>
-                      <button
-                        onClick={() => revoke.mutate(s.id)}
-                        disabled={s.status !== "active" || revoke.isPending}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-destructive/40 px-2 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-40"
-                      >
-                        <X className="h-3.5 w-3.5" /> Revogar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <section className="panel p-5">
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-xl border border-input p-1">
-            {([
-              { v: "list", label: "Lista" },
-              { v: "month", label: "Mês" },
-              { v: "week", label: "Semana" },
-            ] as const).filter((o) => !(allMonths && o.v === "week")).map((o) => (
-              <button
-                key={o.v}
-                onClick={() => setView(o.v)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  view === o.v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-          {view === "week" && currentWeek && !allMonths && (
-            <div className="inline-flex items-center gap-2">
-              <button
-                onClick={() => setWeekIndex((i) => Math.max(0, i - 1))}
-                disabled={weekIndex === 0}
-                className="rounded-lg border border-input p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
-                aria-label="Semana anterior"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-xs font-semibold">{weekLabel(currentWeek)}</span>
-              <button
-                onClick={() => setWeekIndex((i) => Math.min(weeks.length - 1, i + 1))}
-                disabled={weekIndex >= weeks.length - 1}
-                className="rounded-lg border border-input p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-40"
-                aria-label="Próxima semana"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          <Field label="Mês">
-            <select
-              value={month}
-              onChange={(e) => {
-                const v = Number(e.target.value);
-                setMonth(v);
-                setWeekIndex(0);
-                if (v === -1 && view === "week") setView("list");
-              }}
-              className={inputCls}
-            >
-              <option value={-1}>Todos (ano inteiro)</option>
-              {MONTHS.map((m, i) => (
-                <option key={m} value={i}>{m}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Ano">
-            <select value={year} onChange={(e) => { setYear(Number(e.target.value)); setWeekIndex(0); }} className={inputCls}>
-              {YEARS.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Buscar">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Artista, título ou local" className={`${inputCls} pl-9`} />
-            </div>
-          </Field>
-        </div>
-
-        <div className="mt-4">
-          <Field label="Cantor">
-            <select
-              className={inputCls}
-              value={selected.length === 1 ? selected[0] : "all"}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSelected(v === "all" ? allArtists.map((a) => a.id) : [v]);
-              }}
-            >
-              <option value="all">Todos os cantores</option>
-              {allArtists.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.artist_name || a.handle || "Artista"}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-2 flex flex-wrap items-end gap-3">
+        <Field label="Mês">
+          <select value={month} onChange={(e) => { const v = Number(e.target.value); setMonth(v); setWeekIndex(0); if (v === -1 && view === "week") setView("list"); }} className={inputCls}>
+            <option value={-1}>Ano inteiro</option>
+            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+          </select>
+        </Field>
+        <Field label="Ano">
+          <select value={year} onChange={(e) => { setYear(Number(e.target.value)); setWeekIndex(0); }} className={inputCls}>
+            {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </Field>
+        <Field label="Artista">
+          <select className={inputCls} value={selected.length === 1 ? selected[0] : "all"} onChange={(e) => { const v = e.target.value; setSelected(v === "all" ? allArtists.map((x) => x.id) : [v]); }}>
+            <option value="all">Todos</option>
+            {allArtists.map((x) => <option key={x.id} value={x.id}>{x.artist_name || x.handle || "Artista"}</option>)}
+          </select>
+        </Field>
+        <Field label="Situação">
+          <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Todas</option><option value="scheduled">Agendado</option><option value="completed">Realizado</option><option value="cancelled">Cancelado</option>
+          </select>
+        </Field>
+        <Field label="Buscar" className="min-w-[200px] flex-1">
+          <span className="relative block">
+            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-ink-soft" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Show, local ou artista" className={`${inputCls} w-full pl-9`} />
+          </span>
+        </Field>
+      </div>
+      <details className="mb-6 text-sm">
+        <summary className="inline-flex h-10 cursor-pointer items-center font-medium text-violet">Mais filtros</summary>
+        <div className="mt-2 flex flex-wrap items-end gap-3">
           <Field label="Cidade"><input className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} /></Field>
-          <Field label="Estado"><input className={inputCls} maxLength={2} value={state} onChange={(e) => setState(e.target.value)} /></Field>
-          <Field label="Status"><select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos</option><option value="scheduled">Agendado</option><option value="completed">Realizado</option><option value="cancelled">Cancelado</option></select></Field>
-        </div>
-
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="text-xs font-semibold">Artistas</div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() =>
-                  setSelected((s) =>
-                    allSelected
-                      ? s.filter((id) => !list.some((a) => a.id === id))
-                      : Array.from(new Set([...s, ...list.map((a) => a.id)])),
-                  )
-                }
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                {allSelected ? "Desmarcar visíveis" : "Selecionar todos"}
-              </button>
-              <button
-                onClick={() => setSelected([])}
-                disabled={selected.length === 0}
-                className="text-xs font-semibold text-muted-foreground hover:underline disabled:opacity-40"
-              >
-                Limpar seleção
-              </button>
-            </div>
-          </div>
-          <div className="relative mb-3">
-            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={artistQ}
-              onChange={(e) => setArtistQ(e.target.value)}
-              placeholder="Buscar cantor por nome, cidade ou gênero"
-              className={`${inputCls} pl-9`}
-            />
-          </div>
-          {artists.isLoading && <p className="text-sm text-muted-foreground">Carregando artistas…</p>}
-          {!artists.isLoading && list.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              {artistQ ? "Nenhum cantor encontrado para essa busca." : "Nenhum artista cadastrado."}
-            </p>
+          <Field label="UF"><input className={`${inputCls} w-20`} maxLength={2} value={state} onChange={(e) => setState(e.target.value)} /></Field>
+          {!allMonths && <Field label="Visualizar">
+            <span className="inline-flex rounded-md border border-line bg-sheet p-1">
+              {(["list", "week"] as const).map((v) => <button type="button" key={v} onClick={() => setView(v)} aria-pressed={view === v} className={`h-9 rounded px-3 text-sm font-medium ${view === v ? "bg-paper text-ink" : "text-ink-soft"}`}>{v === "list" ? "Mês" : "Semana"}</button>)}
+            </span>
+          </Field>}
+          {view === "week" && currentWeek && !allMonths && (
+            <span className="inline-flex items-center gap-1 pb-1">
+              <IconButton label="Semana anterior" onClick={() => setWeekIndex((i) => Math.max(0, i - 1))} disabled={weekIndex === 0}><ChevronLeft className="h-[18px] w-[18px]" /></IconButton>
+              <span className="text-sm font-medium">{weekLabel(currentWeek)}</span>
+              <IconButton label="Próxima semana" onClick={() => setWeekIndex((i) => Math.min(weeks.length - 1, i + 1))} disabled={weekIndex >= weeks.length - 1}><ChevronRight className="h-[18px] w-[18px]" /></IconButton>
+            </span>
           )}
-          <div className="flex flex-wrap gap-2">
-            {list.map((a) => {
-              const on = selected.includes(a.id);
-              return (
-                <button
-                  key={a.id}
-                  onClick={() =>
-                    setSelected((s) => (on ? s.filter((x) => x !== a.id) : [...s, a.id]))
-                  }
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    on
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-input text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  {a.artist_name || a.handle || "Artista"}
-                </button>
-              );
-            })}
-          </div>
         </div>
-      </section>
+      </details>
 
-      <AdminAccessSection />
-
-
-
-      {allArtists.length === 0 && <EmptyState>Nenhum artista cadastrado.</EmptyState>}
-       {allArtists.length > 0 && selected.length === 0 && <EmptyState>Selecione um artista para visualizar a agenda.</EmptyState>}
-       {allArtists.length > 0 && selected.length > 0 && agenda.isLoading && <EmptyState>Carregando shows…</EmptyState>}
-       {allArtists.length > 0 && selected.length > 0 && agenda.data && filtered.length === 0 && !agenda.isLoading && (
-        <EmptyState>
-          {view === "week"
-            ? "Nenhum evento/atividade nesta semana."
-            : allMonths
-              ? "Nenhum evento/atividade encontrado neste ano."
-              : "Nenhum evento/atividade encontrado para esse mês."}
+      {artists.isLoading || (selected.length > 0 && agenda.isLoading) ? (
+        <div className="grid gap-3" aria-busy>{[0, 1, 2].map((i) => <div key={i} className="h-[118px] animate-pulse rounded-2xl border border-line bg-sheet" />)}</div>
+      ) : allArtists.length === 0 ? (
+        <EmptyState title="Nenhum artista cadastrado" actions={<Button asChild><Link to="/artistas"><Plus /> Cadastrar artista</Link></Button>}>Cadastre um artista para montar a agenda.</EmptyState>
+      ) : selected.length === 0 ? (
+        <EmptyState title="Nenhum artista selecionado" actions={<Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>}>Escolha um artista ou todos para ver os shows.</EmptyState>
+      ) : agenda.isError ? (
+        <EmptyState title="Não foi possível carregar a agenda" actions={<Button variant="outline" onClick={() => agenda.refetch()}>Tentar de novo</Button>}>Verifique a conexão e tente de novo.</EmptyState>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title={view === "week" ? "Nenhum show nesta semana" : `Nenhum show em ${periodLabel}`}
+          actions={<><Button onClick={() => setDrawer(true)}><Plus /> Adicionar show</Button>{hasFilters && <Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>}</>}
+        >
+          Os shows adicionados aqui aparecem na página pública de cada artista.
         </EmptyState>
-      )}
-
-      {view === "list" && filtered.length > 0 && (
-        <div className="overflow-x-auto panel">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Data</th>
-                <th className="px-4 py-3">Dia</th>
-                <th className="px-4 py-3">Hora</th>
-                <th className="px-4 py-3">Evento</th>
-                <th className="px-4 py-3">Cidade</th>
-                <th className="px-4 py-3">Artista</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((e) => (
-                <tr key={e.id} className="border-b border-border/60 last:border-0">
-                  <td className="px-4 py-3 whitespace-nowrap">{shortDate(e.start)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap capitalize">{weekday(e.start)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatTime(e.start)}</td>
-                  <td className="px-4 py-3">
-                    {e.htmlLink ? (
-                      <a href={e.htmlLink} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">
-                        {e.summary}
-                      </a>
-                    ) : (
-                      <span className="font-semibold">{e.summary}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{e.location || "—"}</td>
-                  <td className="px-4 py-3">{e.artistName}</td>
-                </tr>
+      ) : (
+        groups.map((g) => (
+          <section key={g.key} className="mb-6">
+            <h2 className="mb-3 flex items-center gap-3 font-poster text-[22px] font-semibold uppercase after:h-px after:flex-1 after:bg-line">{g.label}</h2>
+            <ul className="grid gap-3">
+              {g.items.map((e) => (
+                <li key={e.id}>
+                  <Ingresso
+                    start={e.start}
+                    title={e.summary}
+                    place={e.location}
+                    artist={e.artistName}
+                    status={eventStatusKind(e)}
+                    accent={accentFor(e.artistId)}
+                    actions={e.htmlLink ? <a href={e.htmlLink} target="_blank" rel="noreferrer" aria-label={`Abrir ${e.summary} no Google Calendar`} title="Abrir no Google Calendar" className="grid h-10 w-10 place-items-center rounded-md text-ink-soft hover:bg-paper hover:text-ink"><ExternalLink className="h-[18px] w-[18px]" /></a> : undefined}
+                  />
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </ul>
+          </section>
+        ))
       )}
 
-      <ul className={`space-y-3 ${view === "list" ? "hidden" : ""}`}>
-        {filtered.map((e) => (
-          <li key={e.id} className="panel p-4 transition-shadow hover:shadow-brand">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
-                  <CalendarDays className="h-3.5 w-3.5" /> {formatDate(e.start)}
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] tracking-normal text-foreground">
-                    {e.artistName}
-                  </span>
-                </div>
-                <h3 className="mt-1 truncate section-title">{e.summary}</h3>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                  <span>{formatTime(e.start)} — {formatTime(e.end)}</span>
-                  {e.location && (
-                    <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {e.location}</span>
-                  )}
-                </div>
+      <details className="panel mt-10 p-5 sm:p-6">
+        <summary className="section-title cursor-pointer">Acesso de outros administradores</summary>
+        <AdminAccessSection />
+      </details>
+
+      <EventDrawer open={drawer} onOpenChange={setDrawer} defaultArtistId={selected.length === 1 ? selected[0] : undefined} />
+
+      <Dialog.Root open={shareOpen} onOpenChange={setShareOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-[#110a22]/50" />
+          <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[460px] animate-drawer flex-col border-l border-line bg-sheet text-ink outline-none">
+            <header className="flex items-start justify-between gap-3 border-b border-line py-3 pr-3 pl-5">
+              <div>
+                <Dialog.Title className="section-title">Compartilhar agenda</Dialog.Title>
+                <Dialog.Description className="text-sm text-ink-soft">Link somente leitura, sem precisar de conta.</Dialog.Description>
               </div>
-              {e.htmlLink && (
-                <a href={e.htmlLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                  Abrir <ExternalLink className="h-3 w-3" />
-                </a>
+              <Dialog.Close className="grid h-10 w-10 place-items-center rounded-md text-ink-soft hover:bg-paper hover:text-ink" aria-label="Fechar"><X className="h-5 w-5" /></Dialog.Close>
+            </header>
+            <div className="grid content-start gap-5 overflow-y-auto p-5">
+              <dl className="panel divide-y divide-line text-sm">
+                <div className="flex justify-between gap-3 px-4 py-3"><dt className="text-ink-soft">Período</dt><dd className="font-medium">{allMonths ? `Ano de ${year}` : `${MONTHS[month]} de ${year}`}</dd></div>
+                <div className="px-4 py-3"><dt className="text-ink-soft">Artistas ({selected.length})</dt><dd className="mt-1">{allArtists.filter((x) => selected.includes(x.id)).map((x) => x.artist_name || x.handle || "Artista").join(", ") || "Nenhum"}</dd></div>
+              </dl>
+              <fieldset className="grid gap-2">
+                <legend className="mb-2 text-sm font-medium">Validade do link</legend>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {([0, 7, 15, 30] as const).map((d) => (
+                    <button type="button" key={d} onClick={() => setExpiresInDays(d)} aria-pressed={expiresInDays === d} className={`h-11 rounded-md border text-sm font-medium ${expiresInDays === d ? "border-violet bg-violet/10 text-violet" : "border-line text-ink-soft hover:border-ink-soft"}`}>
+                      {d === 0 ? "Sem prazo" : `${d} dias`}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+              <Button onClick={() => { if (selected.length === 0) { toast.error("Escolha ao menos um artista no filtro Artista."); return; } createShare.mutate(); }} disabled={createShare.isPending}>
+                {createShare.isPending ? "Gerando…" : "Gerar link"}
+              </Button>
+              {createShare.isError && <p className="text-sm text-pink-ink">Não foi possível gerar o link. Tente de novo.</p>}
+              {lastToken && (
+                <div className="panel grid gap-3 p-4">
+                  <p className="break-all text-sm text-ink-soft">{shareUrl(lastToken)}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button variant="outline" onClick={async () => { try { await navigator.clipboard.writeText(shareUrl(lastToken)); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão */ } }}><Copy /> {copied ? "Link copiado" : "Copiar link"}</Button>
+                    <Button asChild variant="outline"><a href={shareUrl(lastToken)} target="_blank" rel="noreferrer"><ExternalLink /> Abrir</a></Button>
+                  </div>
+                </div>
               )}
+              <section>
+                <h3 className="mb-2 text-sm font-medium">Links gerados</h3>
+                {shares.isLoading && <p className="text-sm text-ink-soft">Carregando…</p>}
+                {!shares.isLoading && (shares.data?.shares ?? []).length === 0 && <p className="text-sm text-ink-soft">Nenhum link gerado ainda.</p>}
+                <ul className="panel divide-y divide-line">
+                  {(shares.data?.shares ?? []).map((sh) => (
+                    <li key={sh.id} className="grid gap-2 px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-medium">{sh.month === -1 ? `Ano ${sh.year}` : `${MONTHS[sh.month]} ${sh.year}`}</span>
+                        <span className={`pi-status ${sh.status === "active" ? "pi-status--published" : "pi-status--hidden"}`}>{sh.status === "active" ? "Ativo" : sh.status === "revoked" ? "Revogado" : "Expirado"}</span>
+                      </div>
+                      <p className="text-xs text-ink-soft">{sh.artists.length} artista(s) · criado em {shortDate(sh.created_at)}{sh.expires_at ? ` · expira em ${shortDate(sh.expires_at)}` : " · sem prazo"}</p>
+                      <div className="flex flex-wrap gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(shareUrl(sh.token)).then(() => toast.success("Link copiado.")).catch(() => {})}><Copy /> Copiar</Button>
+                        <Button size="sm" variant="ghost" asChild><a href={shareUrl(sh.token)} target="_blank" rel="noreferrer"><ExternalLink /> Abrir</a></Button>
+                        {sh.status === "active" && <Button size="sm" variant="ghost" className="text-pink-ink" disabled={revoke.isPending} onClick={() => { if (window.confirm(`Revogar o link de ${sh.month === -1 ? `${sh.year}` : `${MONTHS[sh.month]} ${sh.year}`}? Quem tiver o link perde o acesso.`)) revoke.mutate(sh.id); }}><X /> Revogar</Button>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             </div>
-          </li>
-        ))}
-      </ul>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }
 
-const inputCls = "w-full min-h-11 rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15";
+const inputCls = "min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
 
 /** Share MY own agenda (read-only) with another administrator. */
 function AdminAccessSection() {
@@ -595,15 +348,14 @@ function AdminAccessSection() {
   const shared = all.filter((p) => p.shared);
 
   return (
-    <section className="panel p-5">
-      <h2 className="section-title">Compartilhar minha agenda com outro administrador</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <section className="mt-3">
+      <p className="text-sm text-ink-soft">
         O administrador escolhido passa a ver a sua agenda somente leitura. Você pode revogar quando quiser.
       </p>
 
-      {peers.isLoading && <p className="mt-3 text-sm text-muted-foreground">Carregando administradores…</p>}
+      {peers.isLoading && <p className="mt-3 text-sm text-ink-soft">Carregando administradores…</p>}
       {!peers.isLoading && all.length === 0 && (
-        <p className="mt-3 text-sm text-muted-foreground">Nenhum outro administrador cadastrado.</p>
+        <p className="mt-3 text-sm text-ink-soft">Nenhum outro administrador cadastrado.</p>
       )}
 
       {available.length > 0 && (
@@ -619,28 +371,26 @@ function AdminAccessSection() {
           <button
             onClick={() => viewerId && grant.mutate(viewerId)}
             disabled={!viewerId || grant.isPending}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="h-11 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violet disabled:opacity-50"
           >
             {grant.isPending ? "Concedendo…" : "Conceder acesso"}
           </button>
         </div>
       )}
-      {grant.isError && <p className="mt-2 text-xs text-destructive">Não foi possível conceder o acesso.</p>}
+      {grant.isError && <p className="mt-2 text-xs text-pink-ink">Não foi possível conceder o acesso.</p>}
 
       {shared.length > 0 && (
         <ul className="mt-4 space-y-2">
           {shared.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border p-3">
-              <span className="text-sm font-semibold">
-                {p.name}{p.is_master ? " (master)" : ""}
-                <span className="ml-2 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-primary">
-                  Somente leitura
-                </span>
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line p-3">
+              <span className="text-sm">
+                <span className="font-medium">{p.name}{p.is_master ? " (Master)" : ""}</span>
+                <span className="ml-2 text-ink-soft">vê sua agenda, sem editar</span>
               </span>
               <button
-                onClick={() => revoke.mutate(p.id)}
+                onClick={() => { if (window.confirm(`Revogar o acesso de ${p.name} à sua agenda?`)) revoke.mutate(p.id); }}
                 disabled={revoke.isPending}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/40 px-3 py-2 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-40"
+                className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-pink-ink hover:bg-paper disabled:opacity-40"
               >
                 <X className="h-3.5 w-3.5" /> Revogar
               </button>
@@ -653,17 +403,13 @@ function AdminAccessSection() {
 }
 
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <label className="block">
-      <div className="mb-1.5 text-xs font-semibold">{label}</div>
+    <label className={`grid gap-2 text-sm font-medium ${className ?? ""}`}>
+      <span>{label}</span>
       {children}
     </label>
   );
-}
-
-function EmptyState({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
 function formatDate(iso: string) {

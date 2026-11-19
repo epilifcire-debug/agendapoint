@@ -96,7 +96,7 @@ function PublicAgendaPage() {
   const coverZoom = Math.min(300, Math.max(50, profile?.cover_zoom ?? 100)) / 100;
 
   return (
-    <div className="public-agenda relative min-h-dvh bg-background text-foreground">
+    <div className="pi-stage relative min-h-dvh bg-paper text-ink">
       {cover && (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
           <img
@@ -105,21 +105,21 @@ function PublicAgendaPage() {
             className="h-full w-full object-center opacity-[0.14]"
             style={{ objectFit: coverFit, transform: `scale(${coverZoom})`, transformOrigin: "center" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/50 to-background/90" />
+          <div className="absolute inset-0 bg-paper/80" />
         </div>
       )}
       <div className="relative z-10">
-      <div className="pt-safe bg-[radial-gradient(80%_70%_at_50%_0%,color-mix(in_oklab,var(--brand-purple)_50%,transparent),transparent)] pt-14 pb-10">
+      <div className="pt-safe pt-14 pb-10">
         <div className="mx-auto flex max-w-2xl flex-col items-center px-4 text-center">
           <img
             src={avatar}
             alt={profile ? `Foto de ${profile.artist_name}` : "Artista"}
-            className="h-24 w-24 rounded-full border-4 border-background object-cover shadow-brand"
+            className="h-24 w-24 rounded-full border-4 border-paper object-cover"
           />
-          <h1 className="display-title mt-5 text-[clamp(2.25rem,1.6rem+3vw,3.5rem)]">
+          <h1 className="poster-title mt-5 text-[clamp(2.25rem,1.6rem+3vw,3.5rem)]">
             {profile?.artist_name ?? "Artista não encontrado"}
           </h1>
-          {profile?.city && <p className="mt-1 text-sm text-muted-foreground">{profile.city}</p>}
+          {profile?.city && <p className="mt-1 text-sm text-ink-soft">{profile.city}</p>}
 
           {profile && (
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -129,7 +129,7 @@ function PublicAgendaPage() {
                   href={s.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center rounded-full border border-border bg-card/60 px-4 text-xs font-semibold backdrop-blur transition-colors hover:bg-card"
+                  className="inline-flex h-10 items-center rounded-md border border-line bg-sheet px-4 text-sm font-medium hover:border-ink-soft"
                 >
                   {s.label}
                 </a>
@@ -139,7 +139,7 @@ function PublicAgendaPage() {
                   href={`https://wa.me/${normalizeBrPhone(profile.whatsapp_phone)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:border-emerald-400"
+                  className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-teal-ink hover:border-emerald-400"
                 >
                   WhatsApp
                 </a>
@@ -176,7 +176,7 @@ function PublicAgendaPage() {
         </div>
 
         {groups.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-line p-10 text-center text-sm text-ink-soft">
             Nenhum show encontrado para esse período.
           </div>
         )}
@@ -184,7 +184,7 @@ function PublicAgendaPage() {
         <div className="space-y-7">
           {groups.map(([label, list]) => (
             <section key={label}>
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</h3>
+              <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-ink-soft">{label}</h3>
               <ul className="space-y-3">
                 {list.map((e) => (
                   <li
@@ -195,7 +195,7 @@ function PublicAgendaPage() {
                     <div className="min-w-0">
                       <h4 className="truncate font-display text-base font-bold">{e.summary}</h4>
                       {e.location && (
-                        <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-muted-foreground">
+                        <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-ink-soft">
                           <MapPin className="h-3.5 w-3.5" /> {e.location}
                         </p>
                       )}
@@ -213,7 +213,7 @@ function PublicAgendaPage() {
           ))}
         </div>
 
-        <footer className="mt-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <footer className="mt-12 flex items-center justify-center gap-2 text-sm text-ink-soft">
           <Sparkles className="h-4 w-4 text-accent" /> Powered by Agenda Point do Ingresso
         </footer>
       </main>
@@ -223,7 +223,7 @@ function PublicAgendaPage() {
 }
 
 const selectCls =
-  "rounded-full border border-border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring";
+  "rounded-full border border-line bg-sheet px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring";
 
 function normalizeBrPhone(v: string) {
   const digits = v.replace(/\D/g, "");

@@ -14,6 +14,8 @@ import {
 import { connectAppUser } from "@/lib/googleConnectClient";
 import { AdminAccounts } from "@/components/AdminAccounts";
 import { PageHeader } from "@/components/brand";
+import { Button } from "@/components/ui/button";
+import { InstallAppButton } from "@/components/PwaRegister";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -84,119 +86,80 @@ function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow="Conta" title="Configurações" description="Conexões, integrações e status da sua conta." />
+    <div>
+      <PageHeader title="Configurações" />
       {connected.data?.needsReconnect && (
-        <p role="status" className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-          A conexão antiga com o Google Calendar precisa ser refeita nesta nova versão. Marque o aviso e conecte novamente.
+        <p role="status" className="mb-4 max-w-3xl rounded-[10px] border border-orange/40 bg-sheet px-4 py-3 text-sm">
+          <span className="pi-status pi-status--draft mr-2">Atenção</span>A conexão antiga com o Google Calendar precisa ser refeita nesta versão. Marque o aviso e conecte de novo.
         </p>
       )}
 
-      <section className="panel p-5 sm:p-6">
-        <h2 className="section-title">Integrações</h2>
-        <div className="mt-4 divide-y divide-border">
-          <div className="flex flex-wrap items-center justify-between gap-3 py-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-brand-turquoise/15 p-2.5 text-brand-turquoise"><CalIcon className="h-5 w-5" /></div>
-              <div>
-                <div className="font-semibold">Google Calendar</div>
-                <StatusPill ok={!!connected.data?.connected} okText="Conectado" offText="Não conectado" />
-              </div>
+      <section className="panel max-w-3xl divide-y divide-line">
+        <div className="grid gap-4 px-5 py-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-[220px] flex-1">
+              <h2 className="font-medium">Google Calendar</h2>
+              <p className="text-sm text-ink-soft">Traz os shows do calendário do Google para a agenda. Opcional.</p>
             </div>
-            <div className="w-full rounded-lg border border-border bg-muted/40 p-3">
-              <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={calendarConsent}
-                  onChange={(event) => setCalendarConsent(event.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                />
-                <span>
-                  Ao conectar o Google Calendar, a Agenda Point do Ingresso acessará os dados necessários do calendário principal para sincronizar e divulgar os eventos definidos como shows. Você poderá desconectar a integração a qualquer momento. Li os{" "}
-                  <Link to="/termos" className="font-semibold text-primary underline">Termos</Link>{" "}
-                  e a{" "}
-                  <Link to="/privacidade" className="font-semibold text-primary underline">Política de Privacidade</Link>.
-                </span>
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {connected.data?.connected ? (
-                <>
-                  <button
-                    onClick={() => connectMut.mutate("popup")}
-                    disabled={connectMut.isPending || !calendarConsent}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-input px-3 py-1.5 text-sm font-semibold hover:bg-muted disabled:opacity-60"
-                  >
-                    <RefreshCw className="h-4 w-4" /> Reautorizar
-                  </button>
-                  <button
-                    onClick={() => disconnectMut.mutate()}
-                    disabled={disconnectMut.isPending}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-input px-3 py-1.5 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
-                  >
-                    <Unplug className="h-4 w-4" /> Desconectar
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => connectMut.mutate("popup")}
-                    disabled={connectMut.isPending || !calendarConsent}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground shadow-brand disabled:opacity-60"
-                  >
-                    <CalIcon className="h-4 w-4" /> {connectMut.isPending ? "Abrindo…" : "Conectar"}
-                  </button>
-                  <button
-                    onClick={() => connectMut.mutate("tab")}
-                    disabled={connectMut.isPending || !calendarConsent}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-input px-3 py-1.5 text-sm font-semibold hover:bg-muted disabled:opacity-60"
-                  >
-                    <ExternalLink className="h-4 w-4" /> Conectar em nova aba
-                  </button>
-                </>
-              )}
-            </div>
+            <StatusPill ok={!!connected.data?.connected} okText="Conectado" offText="Não conectado" />
+          </div>
+          {!connected.data?.connected && (
+            <label className="flex items-start gap-3 rounded-md border border-line p-3 text-sm text-ink-soft">
+              <input type="checkbox" checked={calendarConsent} onChange={(event) => setCalendarConsent(event.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--violet)]" />
+              <span>
+                Ao conectar, a Agenda Point acessa o calendário principal só para sincronizar e divulgar os eventos marcados como shows. Dá para desconectar quando quiser. Li os{" "}
+                <Link to="/termos" className="font-medium text-violet underline">Termos</Link> e a{" "}
+                <Link to="/privacidade" className="font-medium text-violet underline">Política de Privacidade</Link>.
+              </span>
+            </label>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {connected.data?.connected ? (
+              <>
+                <Button variant="outline" onClick={() => { setCalendarConsent(true); connectMut.mutate("popup"); }} disabled={connectMut.isPending}><RefreshCw /> Reautorizar Google</Button>
+                <Button variant="ghost" className="text-pink-ink" disabled={disconnectMut.isPending} onClick={() => { if (window.confirm("Desconectar o Google Calendar? Os shows vindos do Google deixam de aparecer na agenda.")) disconnectMut.mutate(); }}><Unplug /> Desconectar Google</Button>
+              </>
+            ) : (
+              <>
+                <Button onClick={() => connectMut.mutate("popup")} disabled={connectMut.isPending}><CalIcon /> {connectMut.isPending ? "Abrindo o Google…" : "Conectar Google"}</Button>
+                <Button variant="ghost" onClick={() => connectMut.mutate("tab")} disabled={connectMut.isPending}><ExternalLink /> Conectar em nova aba</Button>
+              </>
+            )}
           </div>
         </div>
+
+        <div className="flex flex-wrap items-center gap-3 px-5 py-5">
+          <div className="min-w-[220px] flex-1">
+            <h2 className="font-medium">Instalar no celular</h2>
+            <p className="text-sm text-ink-soft">Abre a agenda como app, sem precisar do navegador. Se o botão não aparecer, use “Adicionar à tela inicial” no menu do navegador.</p>
+          </div>
+          <InstallAppButton label="Instalar app" />
+        </div>
+
+        {!isAdmin && (
+          <div className="px-5 py-5">
+            <h2 className="font-medium">Contas sociais</h2>
+            <p className="text-sm text-ink-soft">Links da sua página pública. Para mudar, edite o Perfil.</p>
+            <ul className="mt-3 divide-y divide-line">
+              {socials.map((s) => (
+                <li key={s.key} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">{s.label}</div>
+                    <div className="max-w-xs truncate text-sm text-ink-soft">{s.value || "Não preenchido"}</div>
+                  </div>
+                  <StatusPill ok={!!s.value} okText="Ativo" offText="Vazio" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
-      {!isAdmin && (
-      <section className="panel p-5 sm:p-6">
-        <h2 className="section-title">Contas sociais</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Links exibidos na sua página pública. Edite no Perfil.</p>
-        <ul className="mt-4 divide-y divide-border">
-          {socials.map((s) => {
-            const Icon = s.icon;
-            const filled = !!s.value;
-            return (
-              <li key={s.key} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-muted p-2 text-muted-foreground"><Icon className="h-4 w-4" /></div>
-                  <div>
-                    <div className="text-sm font-semibold">{s.label}</div>
-                    {filled ? (
-                      <div className="text-xs text-muted-foreground truncate max-w-xs">{s.value}</div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">Não configurado</div>
-                    )}
-                  </div>
-                </div>
-                <StatusPill ok={filled} okText="Ativo" offText="Vazio" />
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-      )}
-      {isMaster && <AdminAccounts />}
+      {isMaster && <div className="mt-8 max-w-3xl"><AdminAccounts /></div>}
     </div>
   );
 }
 
 function StatusPill({ ok, okText, offText }: { ok: boolean; okText: string; offText: string }) {
-  return ok ? (
-    <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> {okText}</span>
-  ) : (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="h-3.5 w-3.5" /> {offText}</span>
-  );
+  return <span className={`pi-status ${ok ? "pi-status--published" : "pi-status--hidden"}`}>{ok ? okText : offText}</span>;
 }

@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, CalendarDays, Copy, ExternalLink, MapPin, Play, Share2, Ticket } from "lucide-react";
+import { CalendarDays, Copy, ExternalLink, MapPin, Play, Share2, Ticket } from "lucide-react";
 import { toast } from "sonner";
-import { BrandMark, EfcsysSignature, logoUrl } from "@/components/brand";
+import { EfcsysSignature, Ingresso, accentFor, logoUrl } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { shareTargets, socialLinks } from "@/lib/share";
 
@@ -54,7 +54,7 @@ export type PublicManagedMedia = {
 };
 
 const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-const selectCls = "h-10 rounded-full border border-border bg-card px-4 text-sm font-medium outline-none focus:border-ring focus:ring-4 focus:ring-ring/15";
+const selectCls = "h-11 rounded-md border border-line bg-sheet px-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20";
 
 export function ManagedArtistPublicPage({ artist, events, media }: { artist: PublicManagedArtist | null; events: PublicManagedEvent[]; media: PublicManagedMedia[] }) {
   const [month, setMonth] = useState("all");
@@ -81,73 +81,60 @@ export function ManagedArtistPublicPage({ artist, events, media }: { artist: Pub
     toast.success("Link da agenda copiado.");
   };
 
+  const accent = accentFor(artist.id);
   return (
-    <div className="public-agenda min-h-dvh bg-background text-foreground">
-      <header className="relative isolate overflow-hidden">
-        <img src={artist.cover_url || artist.avatar_url || logoUrl} alt="" className="absolute inset-0 -z-20 h-full w-full scale-105 object-cover" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background/10 via-background/70 to-background" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_20%_100%,color-mix(in_oklab,var(--brand-purple)_40%,transparent),transparent)]" />
-        <div className="pt-safe mx-auto max-w-5xl px-5 sm:px-6">
+    <div className="min-h-dvh bg-paper text-ink">
+      <header className="pi-stage grid bg-stage text-white md:grid-cols-[1fr_40%]">
+        <div className="pt-safe flex flex-col gap-4 px-5 pb-10 sm:px-10">
           <div className="flex items-center justify-between py-5">
-            <BrandMark tone="inverse" compact />
-            <Button onClick={shareAgenda} size="sm" variant="secondary" className="rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20"><Share2 /> Compartilhar</Button>
+            <Link to="/" aria-label="Point do Ingresso"><img src={logoUrl} alt="" className="h-9 w-9 rounded-full bg-white" /></Link>
+            <button type="button" onClick={shareAgenda} className="pi-ghost"><Share2 className="h-[18px] w-[18px]" /> Compartilhar</button>
           </div>
-          <div className="flex min-h-[340px] flex-col justify-end pb-10 sm:min-h-[400px]">
-            <img src={artist.avatar_url || logoUrl} alt={`Foto de ${artist.artist_name}`} className="h-28 w-28 animate-rise rounded-full border-4 border-background object-cover shadow-brand sm:h-32 sm:w-32" />
-            {(artist.genre || location) && <p className="eyebrow mt-6 text-white/70">{[artist.genre, location].filter(Boolean).join(" · ")}</p>}
-            <h1 className="display-title mt-2 animate-rise text-white">{artist.artist_name}</h1>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {bookingHref && artist.show_booking_contact && <Button asChild className="rounded-full px-5"><a href={bookingHref} target={bookingHref.startsWith("http") ? "_blank" : undefined} rel="noreferrer">Contratar para show <ArrowUpRight /></a></Button>}
-              {socials.map((social) => <a key={social.label} href={social.href} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/15">{social.label}<ExternalLink className="h-3.5 w-3.5 opacity-60" /></a>)}
-            </div>
+          <span className="pi-strip mt-auto" />
+          {(artist.genre || location) && <p className="text-sm text-[#c9c1dd]">{[artist.genre, location].filter(Boolean).join(" · ")}</p>}
+          <h1 className="poster-title text-[64px] break-words sm:text-[88px] lg:text-[112px]">{artist.artist_name}</h1>
+          <div className="flex flex-wrap gap-2">
+            {bookingHref && artist.show_booking_contact && <a href={bookingHref} target={bookingHref.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="inline-flex h-11 items-center rounded-md bg-white px-4 text-sm font-medium text-[#1e0b3f] hover:bg-[#f3f0fa]">Contratar para show</a>}
+            {socials.map((social) => <a key={social.label} href={social.href} target="_blank" rel="noreferrer" className="pi-ghost h-11">{social.label}</a>)}
           </div>
+        </div>
+        <div className="relative order-first h-56 overflow-hidden bg-violet md:order-none md:h-auto md:min-h-[420px]">
+          {(artist.cover_url || artist.avatar_url) && <img src={artist.cover_url || artist.avatar_url || ""} alt={`Foto de ${artist.artist_name}`} className="pi-duotone absolute inset-0 h-full w-full object-cover" />}
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-16 px-5 py-12 sm:px-6">
-        {artist.bio && <section className="grid gap-4 md:grid-cols-[200px_1fr]"><p className="eyebrow pt-1.5">Sobre</p><p className="max-w-3xl whitespace-pre-line text-[1.0625rem] leading-8 text-foreground/85">{artist.bio}</p></section>}
+      <main className="mx-auto grid max-w-[880px] gap-12 px-4 py-10 sm:px-6">
+        {artist.bio && <p className="max-w-[65ch] text-lg leading-relaxed whitespace-pre-line">{artist.bio}</p>}
 
         <section>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="eyebrow text-primary">Agenda</p>
-              <h2 className="page-title mt-2">Próximos shows</h2>
-            </div>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <h2 className="page-title">Próximos shows</h2>
             <div className="flex flex-wrap gap-2">
-              <select aria-label="Mês" value={month} onChange={(event) => setMonth(event.target.value)} className={selectCls}><option value="all">Todos os meses</option>{MONTHS.map((name, index) => <option key={name} value={index}>{name}</option>)}</select>
-              <select aria-label="Ano" value={year} onChange={(event) => setYear(event.target.value)} className={selectCls}><option value="all">Todos os anos</option>{years.map((value) => <option key={value} value={value}>{value}</option>)}</select>
+              <label className="grid gap-2 text-sm font-medium">Mês<select value={month} onChange={(event) => setMonth(event.target.value)} className={selectCls}><option value="all">Todos</option>{MONTHS.map((name, index) => <option key={name} value={index}>{name}</option>)}</select></label>
+              {years.length > 1 && <label className="grid gap-2 text-sm font-medium">Ano<select value={year} onChange={(event) => setYear(event.target.value)} className={selectCls}><option value="all">Todos</option>{years.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>}
             </div>
           </div>
           {filtered.length === 0 ? (
-            <div className="mt-8 grid place-items-center rounded-3xl border border-dashed border-border py-14 text-center"><CalendarDays className="h-6 w-6 text-muted-foreground" /><p className="mt-3 text-sm text-muted-foreground">Nenhum show publicado neste período.</p></div>
+            <div className="grid justify-items-center gap-2 rounded-[10px] border border-dashed border-line bg-sheet px-6 py-10 text-center">
+              <CalendarDays className="h-6 w-6 text-ink-soft" />
+              <p className="section-title">Nenhum show neste período</p>
+              <p className="text-sm text-ink-soft">Volte em breve ou compartilhe a página para acompanhar a agenda.</p>
+              {(month !== "all" || year !== "all") && <button type="button" onClick={() => { setMonth("all"); setYear("all"); }} className="mt-2 h-10 rounded-md border border-line px-4 text-sm font-medium hover:border-ink-soft">Ver todos os meses</button>}
+            </div>
           ) : (
-            <ul className="mt-8 grid gap-3">
-              {filtered.map((event) => {
-                const date = new Date(event.starts_at);
-                return (
-                  <li key={event.id}>
-                    <Link to="/artistas/$slug/eventos/$eventSlug" params={{ slug: artist.slug, eventSlug: event.slug }} className="group panel flex items-center gap-4 p-3 pr-5 transition-colors hover:border-primary/40 sm:gap-6 sm:p-4">
-                      <div className="grid h-[4.5rem] w-[4.5rem] shrink-0 place-items-center rounded-2xl bg-brand-gradient text-white sm:h-20 sm:w-20">
-                        <div className="text-center leading-none">
-                          <div className="tabular font-display text-2xl font-semibold sm:text-3xl">{new Intl.DateTimeFormat("pt-BR", { day: "2-digit" }).format(date)}</div>
-                          <div className="mt-1 text-[10px] font-bold uppercase tracking-widest">{MONTHS[date.getMonth()].slice(0, 3)}</div>
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-display text-lg font-semibold tracking-tight sm:text-xl">{event.title}</h3>
-                        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="h-4 w-4 shrink-0" /><span className="truncate">{[event.venue, event.city, event.state].filter(Boolean).join(" · ") || "Local a confirmar"}</span></p>
-                        <p className="tabular mt-0.5 text-xs text-muted-foreground">{new Intl.DateTimeFormat("pt-BR", { weekday: "long", hour: "2-digit", minute: "2-digit" }).format(date)}</p>
-                      </div>
-                      <ArrowUpRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary" />
-                    </Link>
-                  </li>
-                );
-              })}
+            <ul className="grid gap-3">
+              {filtered.map((event) => (
+                <li key={event.id}>
+                  <Link to="/artistas/$slug/eventos/$eventSlug" params={{ slug: artist.slug, eventSlug: event.slug }} className="block rounded-2xl hover:[&>.pi-ticket]:border-ink-soft">
+                    <Ingresso start={event.starts_at} title={event.title} place={[event.venue, [event.city, event.state].filter(Boolean).join(" – ")].filter(Boolean).join(", ") || "Local a confirmar"} accent={accent} status={event.status === "cancelled" ? "cancelled" : undefined} />
+                  </Link>
+                </li>
+              ))}
             </ul>
           )}
         </section>
 
-        {media.length > 0 && <section><p className="eyebrow text-primary">Galeria</p><h2 className="page-title mt-2">Fotos e vídeos</h2><div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">{media.map((item) => item.display_url && (item.kind === "video" ? <a key={item.id} href={item.display_url} target="_blank" rel="noreferrer" className="panel flex aspect-square flex-col items-center justify-center gap-3 text-sm font-semibold transition-colors hover:border-primary/40"><span className="grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground"><Play className="h-5 w-5" /></span>Assistir vídeo</a> : <figure key={item.id} className="overflow-hidden rounded-2xl"><img src={item.display_url} alt={item.caption || `Galeria de ${artist.artist_name}`} loading="lazy" className="aspect-square w-full object-cover transition-transform duration-500 hover:scale-105" />{item.caption && <figcaption className="mt-1.5 text-xs text-muted-foreground">{item.caption}</figcaption>}</figure>))}</div></section>}
+        {media.length > 0 && <section><h2 className="page-title mb-4">Fotos e vídeos</h2><div className="grid grid-cols-2 gap-2 md:grid-cols-3">{media.map((item) => item.display_url && (item.kind === "video" ? <a key={item.id} href={item.display_url} target="_blank" rel="noreferrer" className="flex aspect-square flex-col items-center justify-center gap-3 rounded-[10px] border border-line bg-sheet text-sm font-medium hover:border-ink-soft"><span className="grid h-12 w-12 place-items-center rounded-full bg-ink text-paper"><Play className="h-5 w-5" /></span>Assistir vídeo</a> : <figure key={item.id}><img src={item.display_url} alt={item.caption || `Foto de ${artist.artist_name}`} loading="lazy" className="aspect-square w-full rounded-[10px] object-cover" />{item.caption && <figcaption className="mt-1.5 text-xs text-ink-soft">{item.caption}</figcaption>}</figure>))}</div></section>}
 
         <PublicFooter />
       </main>
@@ -157,8 +144,8 @@ export function ManagedArtistPublicPage({ artist, events, media }: { artist: Pub
 
 function PublicFooter() {
   return (
-    <footer className="pb-safe flex flex-col items-center gap-4 border-t border-border pt-10 text-center sm:flex-row sm:justify-between sm:text-left">
-      <BrandMark tone="inverse" />
+    <footer className="pb-safe flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6 text-sm text-ink-soft">
+      <span>Agenda publicada pelo Point do Ingresso</span>
       <EfcsysSignature />
     </footer>
   );
@@ -168,40 +155,43 @@ export function ManagedEventPublicPage({ artist, event }: { artist: PublicManage
   if (!artist || !event) return <NotFound />;
   const url = typeof window === "undefined" ? `https://agenda.efcsys.com/artistas/${artist.slug}/eventos/${event.slug}` : window.location.href;
   const copy = async () => { await navigator.clipboard.writeText(window.location.href); toast.success("Link do evento copiado."); };
-  return <div className="public-agenda min-h-dvh bg-background text-foreground">
-    <header className="relative isolate overflow-hidden">
-      <img src={event.banner_url || artist.cover_url || artist.avatar_url || logoUrl} alt={`Arte de ${event.title}`} className="absolute inset-0 -z-20 h-full w-full object-cover" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background/20 via-background/70 to-background" />
-      <div className="pt-safe mx-auto max-w-4xl px-5 sm:px-6">
-        <div className="flex items-center justify-between py-5"><BrandMark tone="inverse" compact /><Link to="/artistas/$slug" params={{ slug: artist.slug }} className="flex items-center gap-2 rounded-full bg-white/10 py-1.5 pr-4 pl-1.5 text-sm font-semibold text-white backdrop-blur hover:bg-white/20"><img src={artist.avatar_url || logoUrl} alt="" className="h-7 w-7 rounded-full object-cover" />{artist.artist_name}</Link></div>
-        <div className="flex min-h-[320px] flex-col justify-end pb-10">
-          <p className="eyebrow text-white/70">{formatDateTime(event.starts_at)}</p>
-          <h1 className="display-title mt-3 max-w-3xl text-white">{event.title}</h1>
+  const when = formatDateTime(event.starts_at);
+  return <div className="min-h-dvh bg-paper text-ink">
+    <header className="pi-stage relative isolate overflow-hidden bg-stage text-white">
+      {(event.banner_url || artist.cover_url) && <img src={event.banner_url || artist.cover_url || ""} alt="" className="pi-duotone absolute inset-0 -z-10 h-full w-full object-cover opacity-35" />}
+      <div className="pt-safe mx-auto flex min-h-[360px] max-w-[880px] flex-col gap-4 px-5 pb-10 sm:px-6">
+        <div className="flex items-center justify-between py-5">
+          <Link to="/" aria-label="Point do Ingresso"><img src={logoUrl} alt="" className="h-9 w-9 rounded-full bg-white" /></Link>
+          <Link to="/artistas/$slug" params={{ slug: artist.slug }} className="pi-ghost">{artist.avatar_url && <img src={artist.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />}{artist.artist_name}</Link>
         </div>
+        <span className="pi-strip mt-auto" />
+        <p className="text-sm text-[#c9c1dd] first-letter:uppercase">{when}</p>
+        <h1 className="poster-title text-[56px] break-words sm:text-[96px]">{event.title}</h1>
+        {event.status === "cancelled" && <span className="pi-status w-fit text-[#ff86b0]">Show cancelado</span>}
       </div>
     </header>
-    <main className="mx-auto max-w-4xl px-5 py-10 sm:px-6">
-      <div className="grid gap-8 md:grid-cols-[1fr_300px]">
-        <article className="space-y-6">
-          <div className="panel divide-y divide-border">
-            <div className="flex items-start gap-3 p-5"><CalendarDays className="mt-0.5 h-5 w-5 text-primary" /><div><p className="eyebrow">Quando</p><p className="mt-1 font-semibold first-letter:uppercase">{formatDateTime(event.starts_at)}</p></div></div>
-            <div className="flex items-start gap-3 p-5"><MapPin className="mt-0.5 h-5 w-5 text-primary" /><div><p className="eyebrow">Onde</p><p className="mt-1 font-semibold">{[event.venue, event.address, event.city, event.state].filter(Boolean).join(" · ") || "Local a confirmar"}</p></div></div>
-          </div>
-          {event.description && <p className="whitespace-pre-line text-[1.0625rem] leading-8 text-foreground/85">{event.description}</p>}
-        </article>
-        <aside className="space-y-3 md:sticky md:top-6 md:self-start">
-          {event.ticket_url && <Button asChild size="lg" className="w-full rounded-full"><a href={event.ticket_url} target="_blank" rel="noreferrer"><Ticket /> Comprar ingresso</a></Button>}
-          {event.maps_url && <Button asChild variant="outline" className="h-11 w-full rounded-full"><a href={event.maps_url} target="_blank" rel="noreferrer"><MapPin /> Ver no mapa</a></Button>}
-          <Button onClick={copy} variant="outline" className="h-11 w-full rounded-full"><Copy /> Copiar link</Button>
-          <div className="panel p-3"><p className="eyebrow px-2 pb-2">Compartilhar</p><div className="grid grid-cols-2 gap-1">{shareTargets(url, `Confira ${event.title}, de ${artist.artist_name}:`).map((target) => <Button key={target.label} asChild size="sm" variant="ghost"><a href={target.href} target="_blank" rel="noreferrer">{target.label}</a></Button>)}</div></div>
+    <main className="mx-auto grid max-w-[880px] gap-10 px-4 py-10 sm:px-6">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="grid content-start gap-6">
+          <dl className="panel divide-y divide-line">
+            <div className="flex gap-3 px-5 py-4"><MapPin className="mt-0.5 h-5 w-5 shrink-0 text-violet" /><div><dt className="text-sm text-ink-soft">Onde</dt><dd>{[event.venue, event.address, [event.city, event.state].filter(Boolean).join(" – ")].filter(Boolean).join(" · ") || "Local a confirmar"}</dd></div></div>
+            <div className="flex gap-3 px-5 py-4"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0 text-violet" /><div><dt className="text-sm text-ink-soft">Quando</dt><dd className="first-letter:uppercase">{when}</dd></div></div>
+          </dl>
+          {event.description && <p className="max-w-[65ch] text-lg leading-relaxed whitespace-pre-line">{event.description}</p>}
+        </div>
+        <aside className="grid content-start gap-2 md:sticky md:top-6">
+          {event.ticket_url && event.status !== "cancelled" && <a href={event.ticket_url} target="_blank" rel="noreferrer" className="inline-flex h-13 items-center justify-center gap-2 rounded-md bg-primary text-base font-medium text-primary-foreground hover:bg-violet"><Ticket className="h-5 w-5" /> Comprar ingresso</a>}
+          {event.maps_url && <a href={event.maps_url} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-line bg-sheet text-sm font-medium hover:border-ink-soft"><MapPin className="h-[18px] w-[18px]" /> Abrir no mapa</a>}
+          <button type="button" onClick={copy} className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-line bg-sheet text-sm font-medium hover:border-ink-soft"><Copy className="h-[18px] w-[18px]" /> Copiar link do show</button>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm">{shareTargets(url, `Confira ${event.title}, de ${artist.artist_name}:`).map((target) => <a key={target.label} href={target.href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-violet hover:underline">{target.label}<ExternalLink className="h-3.5 w-3.5" /></a>)}</div>
         </aside>
       </div>
-      <div className="mt-16"><PublicFooter /></div>
+      <PublicFooter />
     </main>
   </div>;
 }
 
-function NotFound() { return <main className="public-agenda grid min-h-dvh place-items-center bg-background px-5 text-center"><div><img src={logoUrl} alt="" className="mx-auto mb-6 h-14 w-14 rounded-full bg-white" /><h1 className="page-title">Conteúdo não encontrado</h1><p className="mt-2 text-muted-foreground">Esta página não está publicada ou não existe.</p></div></main>; }
+function NotFound() { return <main className="grid min-h-dvh place-items-center bg-paper px-5 text-center"><div><img src={logoUrl} alt="" className="mx-auto mb-6 h-14 w-14 rounded-full border border-line bg-white" /><h1 className="page-title">Página não encontrada</h1><p className="mt-2 text-muted-foreground">Esta página não está publicada ou não existe.</p></div></main>; }
 function normalizePhone(value: string) { const digits = value.replace(/\D/g, ""); return digits.length <= 11 ? `55${digits}` : digits; }
 function normalizeUrl(value: string) { return /^https?:\/\//i.test(value) ? value : `https://${value}`; }
 function formatDateTime(value: string) { return new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(new Date(value)); }

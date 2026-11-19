@@ -217,16 +217,16 @@ function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Conta" title="Meu perfil" description="Estas informações aparecem na sua página pública." />
+      <PageHeader title="Meu perfil" description="Estas informações aparecem na sua página pública." />
 
       <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-8">
         <Section title="Foto">
           <div className="flex items-center gap-5">
-            <div className="h-20 w-20 overflow-hidden rounded-full border border-border bg-muted">
+            <div className="h-20 w-20 overflow-hidden rounded-full border border-line bg-muted">
               {avatarPreview ? (
                 <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center text-ink-soft">
                   <UserIcon className="h-8 w-8" />
                 </div>
               )}
@@ -247,7 +247,7 @@ function ProfilePage() {
               >
                 <Upload className="h-4 w-4" /> {uploading ? "Enviando…" : "Enviar foto"}
               </button>
-              <p className="mt-1.5 text-[11px] text-muted-foreground">JPG/PNG até 5MB.</p>
+              <p className="mt-1.5 text-[11px] text-ink-soft">JPG/PNG até 5MB.</p>
             </div>
           </div>
         </Section>
@@ -255,7 +255,7 @@ function ProfilePage() {
         {!isAdmin && (
         <Section title="Imagem de fundo (marca d'água)">
           <div className="space-y-4">
-            <div className="relative aspect-[16/9] w-full max-w-md overflow-hidden rounded-xl border border-border bg-muted">
+            <div className="relative aspect-[16/9] w-full max-w-md overflow-hidden rounded-[10px] border border-line bg-muted">
 
               {coverPreview ? (
                 <>
@@ -271,7 +271,7 @@ function ProfilePage() {
                   </div>
                 </>
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                <div className="flex h-full w-full items-center justify-center text-xs text-ink-soft">
                   Nenhuma imagem de fundo
                 </div>
               )}
@@ -318,7 +318,7 @@ function ProfilePage() {
                         className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                           form.cover_fit === o.v
                             ? "border-primary bg-primary text-primary-foreground"
-                            : "border-input text-muted-foreground hover:bg-muted hover:text-foreground"
+                            : "border-input text-ink-soft hover:bg-muted hover:text-foreground"
                         }`}
                       >
                         {o.label}
@@ -329,7 +329,7 @@ function ProfilePage() {
                 <div>
                   <div className="mb-1.5 flex items-center justify-between text-xs font-semibold">
                     <span>Zoom do fundo</span>
-                    <span className="text-muted-foreground">{form.cover_zoom}%</span>
+                    <span className="text-ink-soft">{form.cover_zoom}%</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <input
@@ -352,7 +352,7 @@ function ProfilePage() {
                 </div>
               </div>
             )}
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-ink-soft">
               Tamanho ideal: 1920×1080 px (16:9), JPG/PNG até 8MB. A imagem aparece esmaecida ao fundo da sua página pública, como marca d'água.
             </p>
           </div>
@@ -383,7 +383,7 @@ function ProfilePage() {
                   onChange={(e) => update("bio")(e.target.value)}
                   maxLength={500}
                   rows={4}
-                  className="w-full min-h-11 rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
+                  className="w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20"
                 />
               </Field>
             </Section>
@@ -400,12 +400,12 @@ function ProfilePage() {
                     onChange={(e) => setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))}
                     placeholder="(11)99999-9999"
                     inputMode="tel"
-                    className="w-full min-h-11 rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
+                    className="w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20"
                   />
                 </Field>
                 <Field label="E-mail de contato"><Input type="email" value={form.contact_email} onChange={update("contact_email")} /></Field>
               </Grid>
-              <label className="flex items-start gap-3 rounded-xl border border-input p-3">
+              <label className="flex items-start gap-3 rounded-md border border-line p-3">
                 <input
                   type="checkbox"
                   checked={form.show_whatsapp}
@@ -414,7 +414,7 @@ function ProfilePage() {
                 />
                 <span>
                   <span className="block text-sm font-semibold">Exibir WhatsApp para contato de shows</span>
-                  <span className="block text-xs text-muted-foreground">
+                  <span className="block text-xs text-ink-soft">
                     Quando ativado, o botão de WhatsApp aparece na sua página pública (é necessário ter telefone cadastrado).
                   </span>
                 </span>
@@ -438,7 +438,7 @@ function ProfilePage() {
           <button
             type="submit"
             disabled={save.isPending}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-brand disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violet disabled:opacity-60"
           >
             <Save className="h-4 w-4" /> {save.isPending ? "Salvando…" : "Salvar alterações"}
           </button>
@@ -464,7 +464,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <label className="block">
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-xs font-semibold">{label}</span>
-        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+        {hint && <span className="text-[11px] text-ink-soft">{hint}</span>}
       </div>
       {children}
     </label>
@@ -500,7 +500,7 @@ function Input(props: { value: string; onChange: (v: string) => void; type?: str
         setLocal(v);
         if (!composing.current) props.onChange(v);
       }}
-      className="w-full min-h-11 rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
+      className="w-full min-h-11 rounded-md border border-line bg-sheet px-3 py-2.5 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20"
     />
   );
 }
@@ -513,7 +513,7 @@ function PublicUrlField({ handle }: { handle: string }) {
 
   if (!slug) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-ink-soft">
         Defina seu <strong>@nomeartistico</strong> acima e salve para gerar o link da sua página pública.
       </p>
     );
@@ -526,7 +526,7 @@ function PublicUrlField({ handle }: { handle: string }) {
           readOnly
           value={url}
           onFocus={(e) => e.currentTarget.select()}
-          className="w-full rounded-xl border border-input bg-muted/40 px-3 py-2 text-sm outline-none"
+          className="w-full rounded-md border border-line bg-muted/40 px-3 py-2 text-sm outline-none"
         />
         <div className="flex gap-2">
           <button
@@ -539,7 +539,7 @@ function PublicUrlField({ handle }: { handle: string }) {
                 toast.error("Não foi possível copiar o link.");
               }
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violet"
           >
             <Copy className="h-4 w-4" /> Copiar
           </button>
@@ -547,7 +547,7 @@ function PublicUrlField({ handle }: { handle: string }) {
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-input px-4 py-2 text-sm font-semibold hover:bg-muted"
+            className="inline-flex h-11 items-center gap-2 rounded-md border border-line bg-sheet px-4 text-sm font-medium hover:border-ink-soft"
           >
             <ExternalLink className="h-4 w-4" /> Abrir
           </a>

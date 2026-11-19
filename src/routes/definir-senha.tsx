@@ -50,14 +50,14 @@ function SetPasswordPage() {
   }
 
   return <main className="flex min-h-dvh items-center justify-center bg-background px-5">
-    <div className="w-full max-w-sm animate-rise space-y-6">
+    <div className="w-full max-w-sm space-y-6">
       <BrandMark />
-      <div><p className="eyebrow text-primary">Convite</p><h1 className="page-title mt-2">Definir senha</h1></div>
-      {!ready ? <p className="text-muted-foreground">Validando convite…</p> : !valid ? <p className="text-muted-foreground">Este convite expirou ou não é válido. Solicite um novo convite ao Master. <Link to="/login" className="text-primary underline">Voltar para entrar</Link></p> :
+      <div><h1 className="page-title mt-2">Definir senha</h1></div>
+      {!ready ? <p className="text-ink-soft">Validando convite…</p> : !valid ? <p className="text-ink-soft">Este convite expirou ou não é válido. Solicite um novo convite ao Master. <Link to="/login" className="text-violet underline">Voltar para entrar</Link></p> :
         <form onSubmit={submit} className="space-y-4">
-          <label className="block text-sm font-medium text-foreground">Nova senha<input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="mt-2 h-12 w-full rounded-2xl border border-input bg-background px-4 outline-none focus:border-ring focus:ring-4 focus:ring-ring/15" /></label>
-          <label className="block text-sm font-medium text-foreground">Confirmar senha<input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8} className="mt-2 h-12 w-full rounded-2xl border border-input bg-background px-4 outline-none focus:border-ring focus:ring-4 focus:ring-ring/15" /></label>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <label className="block text-sm font-medium text-foreground">Nova senha<input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="mt-2 h-11 w-full rounded-md border border-line bg-sheet px-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20" /></label>
+          <label className="block text-sm font-medium text-foreground">Confirmar senha<input type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={8} className="mt-2 h-11 w-full rounded-md border border-line bg-sheet px-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20" /></label>
+          {error && <p role="alert" className="text-sm text-pink-ink">{error}</p>}
           <Button type="submit" size="lg" disabled={saving} className="w-full">{saving ? "Salvando…" : "Salvar senha"}</Button>
         </form>}
     </div>

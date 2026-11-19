@@ -2,7 +2,7 @@
 
 Plataforma de gestão e divulgação de agendas de artistas (Point do Ingresso), fora do Lovable.
 **Stack:** TanStack Start (React 19, SSR) · Tailwind 4 · Supabase · Nitro (Node) · Docker · PWA instalável.
-Padrão visual: EFCSYS (`efcsys-skills`) — Outfit + Plus Jakarta Sans, tema escuro/claro, ColorBends roxo pontual.
+Padrão visual: design system "Point do Ingresso" (efcsys-skills `design-direction`) — Big Shoulders Display + Onest, cores do logo, o ingresso como elemento principal, tema claro/escuro.
 
 ## Rodar localmente
 

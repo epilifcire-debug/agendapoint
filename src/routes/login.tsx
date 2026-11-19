@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { BrandMark, EfcsysSignature } from "@/components/brand";
-import { COLOR_BENDS_PURPLE, ColorBends } from "@/components/ColorBends";
+import { BrandMark, EfcsysSignature, logoUrl } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
@@ -73,105 +72,47 @@ function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-dvh bg-background lg:grid-cols-[1.05fr_1fr]">
-      <aside className="public-agenda relative isolate hidden overflow-hidden bg-background p-10 lg:flex lg:flex-col lg:justify-between">
-        <div aria-hidden className="absolute inset-0 -z-10"><ColorBends {...COLOR_BENDS_PURPLE} /></div>
-        <div aria-hidden className="bg-grain absolute inset-0 -z-10" />
-        <BrandMark tone="inverse" />
-        <div className="max-w-md">
-          <p className="eyebrow text-white/60">Área administrativa</p>
-          <h1 className="mt-4 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-white">Sua agenda oficial, sempre em dia.</h1>
-          <ul className="mt-10 space-y-4 text-sm text-white/75">
-            {["Páginas públicas dos artistas", "Agenda de shows em um só lugar", "Contato para contratação"].map((t) => (
-              <li key={t} className="flex items-center gap-3">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-[10px]">✓</span>
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <EfcsysSignature className="text-white/55 hover:text-white" />
+    <div className="grid min-h-dvh bg-paper lg:grid-cols-2">
+      <aside className="pi-stage hidden flex-col gap-5 bg-stage p-10 text-white lg:flex">
+        <span className="flex items-center gap-2.5">
+          <img src={logoUrl} alt="" className="h-10 w-10 rounded-full bg-white" />
+          <span className="text-sm font-medium">Point do Ingresso</span>
+        </span>
+        <span className="pi-strip mt-auto" />
+        <h1 className="poster-title text-[88px]">Agenda de artistas</h1>
+        <p className="text-[#c9c1dd]">Gestão dos eventos e página pública para o fã.</p>
+        <EfcsysSignature className="mt-6 text-white/60 hover:text-white" />
       </aside>
 
-      <main className="pt-safe flex flex-col px-5 py-6 sm:px-10">
+      <main className="pt-safe flex flex-col px-5 py-5 sm:px-10">
         <div className="flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-1.5 rounded-full px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> Voltar
-          </Link>
+          <Link to="/" className="inline-flex h-10 items-center gap-1.5 text-sm text-ink-soft hover:text-ink"><ArrowLeft className="h-4 w-4" /> Início</Link>
           <BrandMark className="lg:hidden" compact />
         </div>
-
-        <div className="mx-auto flex w-full max-w-sm flex-1 animate-rise flex-col justify-center py-10">
-          <p className="eyebrow text-primary">Entrar</p>
-          <h2 className="page-title mt-2">Bem-vindo de volta</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Acesse a gestão de artistas e agendas.</p>
-
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading}
-            className="mt-8 inline-flex h-12 w-full items-center justify-center gap-3 rounded-2xl border border-input bg-card text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
-          >
-            <GoogleIcon />
-            Entrar com Google
+        <div className="mx-auto grid w-full max-w-[360px] flex-1 content-center gap-4 py-10">
+          <h2 className="page-title">Entrar</h2>
+          <button type="button" onClick={handleGoogle} disabled={loading} className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-sheet text-sm font-medium hover:border-ink-soft disabled:opacity-60">
+            <GoogleIcon /> Entrar com Google
           </button>
-
-          <div className="my-6 flex items-center gap-3 text-xs font-medium text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            ou com e-mail
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <form className="space-y-4" onSubmit={handleEmailSubmit}>
+          <p className="text-center text-xs text-ink-soft">ou com e-mail</p>
+          <form className="grid gap-4" onSubmit={handleEmailSubmit}>
             <Field label="E-mail">
-              <div className="relative">
-                <Mail className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  placeholder="voce@email.com"
-                  className="h-12 w-full rounded-2xl border border-input bg-background pr-4 pl-11 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
-                />
-              </div>
+              <input type="email" inputMode="email" autoComplete="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="nome@empresa.com" className="h-11 w-full rounded-md border border-line bg-sheet px-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20" />
             </Field>
-
             <Field label="Senha">
               <div className="relative">
-                <Lock className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  minLength={6}
-                  value={form.password}
-                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                  placeholder="••••••••"
-                  className="h-12 w-full rounded-2xl border border-input bg-background pr-12 pl-11 text-sm outline-none transition-shadow focus:border-ring focus:ring-4 focus:ring-ring/15"
-                />
-                <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute top-1/2 right-2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
+                <input type={showPassword ? "text" : "password"} autoComplete="current-password" required minLength={6} value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} className="h-11 w-full rounded-md border border-line bg-sheet pr-12 pl-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20" />
+                <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute top-1/2 right-1 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-ink-soft hover:bg-paper hover:text-ink" aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </Field>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-brand transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
-            >
-              {loading ? "Aguarde…" : "Entrar"}
+            <button type="submit" disabled={loading} className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary text-sm font-medium text-primary-foreground hover:bg-violet disabled:opacity-60">
+              {loading ? "Entrando…" : "Entrar"}
             </button>
           </form>
-
-          <p className="mt-8 text-center text-xs leading-relaxed text-muted-foreground">
-            Ao entrar, você concorda com os{" "}
-            <Link to="/termos" className="font-medium text-foreground underline-offset-4 hover:underline">Termos de Serviço</Link>{" "}
-            e a{" "}
-            <Link to="/privacidade" className="font-medium text-foreground underline-offset-4 hover:underline">Política de Privacidade</Link>.
+          <p className="text-center text-xs leading-relaxed text-ink-soft">
+            Ao entrar você concorda com os <Link to="/termos" className="text-ink underline-offset-4 hover:underline">Termos</Link> e a <Link to="/privacidade" className="text-ink underline-offset-4 hover:underline">Política de Privacidade</Link>.
           </p>
         </div>
         <EfcsysSignature className="mx-auto lg:hidden" />
@@ -184,7 +125,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return (
     <label className="block">
       <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[0.8125rem] font-semibold text-foreground">{label}</span>
+        <span className="text-sm font-medium">{label}</span>
       </div>
       {children}
     </label>

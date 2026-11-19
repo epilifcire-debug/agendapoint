@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarDays, MapPin } from "lucide-react";
 import { getSharedAgenda } from "@/lib/agendaShares.functions";
-import { BrandMark, EfcsysSignature } from "@/components/brand";
+import { EfcsysSignature, EmptyState, Ingresso, accentFor, logoUrl } from "@/components/brand";
 
 export const Route = createFileRoute("/agenda/compartilhada/$token")({
   loader: ({ params }) => getSharedAgenda({ data: { token: params.token } }),
   component: SharedAgendaPage,
   errorComponent: () => (
     <Shell title="Agenda compartilhada">
-      <p className="text-sm text-muted-foreground">Não foi possível carregar esta agenda.</p>
+      <EmptyState title="Não foi possível carregar esta agenda">Atualize a página em instantes.</EmptyState>
     </Shell>
   ),
   notFoundComponent: () => (
     <Shell title="Agenda compartilhada">
-      <p className="text-sm text-muted-foreground">Link não encontrado.</p>
+      <EmptyState title="Link não encontrado">Confira se o link foi copiado inteiro.</EmptyState>
     </Shell>
   ),
   head: () => ({
@@ -36,19 +35,21 @@ const MONTHS = [
 
 function Shell({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div className="public-agenda min-h-dvh bg-background text-foreground">
-      <div className="pt-safe relative isolate overflow-hidden border-b border-border">
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(70%_80%_at_20%_0%,color-mix(in_oklab,var(--brand-purple)_45%,transparent),transparent)]" />
-        <div className="mx-auto w-full max-w-2xl px-5 py-6">
-          <BrandMark tone="inverse" />
-          <p className="eyebrow mt-10 text-white/60">Agenda compartilhada</p>
-          <h1 className="page-title mt-2 text-white">{title}</h1>
-          {subtitle && <p className="mt-2 text-sm text-white/65">{subtitle}</p>}
+    <div className="min-h-dvh bg-paper text-ink">
+      <header className="pi-stage bg-stage text-white">
+        <div className="pt-safe mx-auto grid w-full max-w-[720px] gap-3 px-5 pt-6 pb-8">
+          <img src={logoUrl} alt="Point do Ingresso" className="h-9 w-9 rounded-full bg-white" />
+          <span className="pi-strip mt-8 !h-2 !w-20" />
+          <h1 className="poster-title text-[44px] sm:text-[64px]">{title}</h1>
+          {subtitle && <p className="text-sm text-[#c9c1dd]">{subtitle}</p>}
         </div>
-      </div>
-      <main className="pb-safe mx-auto w-full max-w-2xl px-5 py-8">
+      </header>
+      <main className="pb-safe mx-auto w-full max-w-[720px] px-4 py-8">
         {children}
-        <div className="mt-14 flex justify-center"><EfcsysSignature /></div>
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 text-sm text-ink-soft">
+          <span>Somente leitura · Point do Ingresso</span>
+          <EfcsysSignature />
+        </footer>
       </main>
     </div>
   );
@@ -60,15 +61,13 @@ function SharedAgendaPage() {
   if (!data.ok) {
     const msg =
       data.reason === "revoked"
-        ? "Este link de compartilhamento foi revogado."
+        ? "Quem compartilhou revogou este link. Peça um novo a ele."
         : data.reason === "expired"
-          ? "Este link de compartilhamento expirou."
-          : "Link inválido ou inexistente.";
+          ? "O prazo deste link acabou. Peça um novo a quem compartilhou."
+          : "Confira se o link foi copiado inteiro.";
     return (
       <Shell title="Agenda compartilhada">
-        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          {msg}
-        </div>
+        <EmptyState title={data.reason === "revoked" ? "Link revogado" : data.reason === "expired" ? "Link expirado" : "Link não encontrado"}>{msg}</EmptyState>
       </Shell>
     );
   }
@@ -77,36 +76,18 @@ function SharedAgendaPage() {
   const events = data.events ?? [];
 
   return (
-    <Shell title={`Agenda — ${period}`} subtitle={(data.artistNames ?? []).join(" · ")}>
-      {events.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Nenhum evento/atividade neste período.
-        </div>
+    <Shell title={`Agenda · ${period}`} subtitle={(data.artistNames ?? []).join(", ")}>
+      {events.length === 0 ? (
+        <EmptyState title="Nenhum show neste período">Quando houver shows cadastrados eles aparecem aqui.</EmptyState>
+      ) : (
+        <ul className="grid gap-3">
+          {events.map((e) => (
+            <li key={e.id}>
+              <Ingresso start={e.start} title={e.summary} place={e.location} artist={e.artistName} accent={accentFor((e as { artistId?: string }).artistId ?? e.artistName)} />
+            </li>
+          ))}
+        </ul>
       )}
-      <ul className="space-y-3">
-        {events.map((e) => (
-          <li key={e.id} className="panel p-4">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
-              <CalendarDays className="h-3.5 w-3.5" />
-              <span>{shortDate(e.start)}</span>
-              <span className="capitalize text-muted-foreground">{weekday(e.start)}</span>
-            </div>
-            <div className="mt-1 flex items-baseline gap-3">
-              <span className="font-display text-xl font-bold">{formatTime(e.start)}</span>
-              <h2 className="min-w-0 flex-1 break-words section-title">{e.summary}</h2>
-            </div>
-            {e.location && (
-              <p className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" /> {e.location}
-              </p>
-            )}
-            <p className="mt-1 text-sm font-semibold">{e.artistName}</p>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-8 text-center text-xs text-muted-foreground">
-        Visualização somente leitura · Agenda Point do Ingresso
-      </p>
     </Shell>
   );
 }
