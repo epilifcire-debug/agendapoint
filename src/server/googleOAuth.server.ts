@@ -27,6 +27,11 @@ function env(name: string): string {
   return value;
 }
 
+/** Google só funciona com as três variáveis configuradas; sem elas o app ignora a integração. */
+export function googleEnabled(): boolean {
+  return !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET && process.env.APP_USER_CONNECTION_KEY_SECRET);
+}
+
 export function googleRedirectUri(fallbackOrigin?: string): string {
   const origin = (process.env.APP_URL || fallbackOrigin || "").replace(/\/+$/, "");
   if (!origin) throw new Error("APP_URL não configurada no servidor.");
@@ -55,6 +60,7 @@ export function verifyOAuthState(state: string, userId: string): void {
 }
 
 export function buildGoogleAuthorizationUrl(userId: string, fallbackOrigin?: string): string {
+  if (!googleEnabled()) throw new Error("A integração com o Google não está ativada neste servidor.");
   const params = new URLSearchParams({
     client_id: env("GOOGLE_OAUTH_CLIENT_ID"),
     redirect_uri: googleRedirectUri(fallbackOrigin),
@@ -103,6 +109,7 @@ async function readStored(userId: string): Promise<StoredGoogleConnection | "leg
 }
 
 export async function googleConnectionStatus(userId: string): Promise<GoogleConnectionStatus> {
+  if (!googleEnabled()) return "disconnected";
   const stored = await readStored(userId);
   return stored === null ? "disconnected" : stored === "legacy" ? "legacy" : "connected";
 }
@@ -136,6 +143,7 @@ async function accessTokenFor(userId: string): Promise<string | null> {
 
 /** Chama a API do Google como o usuário. Retorna null quando não há conexão válida. */
 export async function googleApiFetch(userId: string, path: string, init?: RequestInit): Promise<Response | null> {
+  if (!googleEnabled()) return null;
   const token = await accessTokenFor(userId);
   if (!token) return null;
   const headers = new Headers(init?.headers);

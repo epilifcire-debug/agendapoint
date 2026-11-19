@@ -18,6 +18,7 @@ import { connectAppUser } from "@/lib/googleConnectClient";
 import { amIAdmin } from "@/lib/admin.functions";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { PageHeader, StatCard } from "@/components/brand";
+import { GOOGLE_ENABLED } from "@/lib/features";
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -56,7 +57,7 @@ function ArtistDashboard() {
   const deleteEventFn = useServerFn(deleteCalendarEvent);
 
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => profileFn() });
-  const connected = useQuery({ queryKey: ["gcal-connected"], queryFn: () => connectedFn() });
+  const connected = useQuery({ queryKey: ["gcal-connected"], queryFn: () => connectedFn(), enabled: GOOGLE_ENABLED });
   const events = useQuery({
     queryKey: ["gcal-events"],
     queryFn: () => listEventsFn(),
@@ -133,16 +134,19 @@ function ArtistDashboard() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Shows futuros" value={events.data?.events.length ?? (connected.data?.connected ? "…" : "0")} />
-        <StatCard label="Google Calendar" value={connected.data?.connected ? "Conectado" : "Não conectado"} accent="var(--brand-turquoise)" />
-        <StatCard label="Cidade" value={profile.data?.city || "Não informada"} accent="var(--brand-orange)" />
+        {GOOGLE_ENABLED && <StatCard label="Google Calendar" value={connected.data?.connected ? "Conectado" : "Não conectado"} />}
+        <StatCard label="Cidade" value={profile.data?.city || "Não informada"} />
       </div>
-      {connected.data?.needsReconnect && (
+      {!GOOGLE_ENABLED && (
+        <p className="panel px-5 py-4 text-sm text-ink-soft">Os shows da sua agenda são cadastrados pelo administrador do Point do Ingresso. Mantenha seu perfil atualizado para a página pública.</p>
+      )}
+      {GOOGLE_ENABLED && connected.data?.needsReconnect && (
         <p role="status" className="rounded-[10px] border border-orange/40 bg-sheet px-4 py-3 text-sm">
           A conexão antiga com o Google Calendar precisa ser refeita nesta nova versão. Marque o aviso abaixo e clique em <strong>Conectar Google</strong>.
         </p>
       )}
 
-      <section className="panel p-5 sm:p-6">
+      {GOOGLE_ENABLED && <section className="panel p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="section-title">Integração com Google Calendar</h2>
@@ -161,7 +165,7 @@ function ArtistDashboard() {
           ) : (
             <button
               onClick={() => connectMut.mutate()}
-              disabled={connectMut.isPending || !calendarConsent}
+              disabled={connectMut.isPending}
               className="inline-flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-violet"
             >
               <Calendar className="h-4 w-4" /> {connectMut.isPending ? "Abrindo…" : "Conectar Google"}
@@ -191,9 +195,9 @@ function ArtistDashboard() {
             </span>
           </label>
         )}
-      </section>
+      </section>}
 
-      {connected.data?.connected && <CreateEventCard onCreate={async (data) => {
+      {GOOGLE_ENABLED && connected.data?.connected && <CreateEventCard onCreate={async (data) => {
         await createEventFn({ data });
         toast.success("Show criado no Google Calendar!");
         qc.invalidateQueries({ queryKey: ["gcal-events"] });

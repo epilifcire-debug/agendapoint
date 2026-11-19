@@ -8,6 +8,7 @@ import { listArtistsAgenda } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Ingresso, PageHeader, SummaryRows, accentFor } from "@/components/brand";
 import { EventDrawer, eventStatusKind } from "@/components/EventDrawer";
+import { GOOGLE_ENABLED } from "@/lib/features";
 
 const today = () => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "numeric", month: "long" }).format(new Date()).replace("-feira", "");
 const monthName = () => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", month: "long" }).format(new Date());
@@ -80,7 +81,7 @@ export function AdminDashboard() {
               ["Rascunhos", agenda.isLoading ? "…" : count("draft")],
               ["Cancelados", agenda.isLoading ? "…" : count("cancelled")],
               ["Artistas", stats.data?.totalArtists ?? "…"],
-              ["Google Calendar", stats.data ? `${stats.data.connected} conectado${stats.data.connected === 1 ? "" : "s"}` : "…"],
+              ...(GOOGLE_ENABLED ? ([["Google Calendar", stats.data ? `${stats.data.connected} conectado${stats.data.connected === 1 ? "" : "s"}` : "…"]] as Array<[string, string | number]>) : []),
               ...(stats.data?.isMaster ? ([["Administradores", stats.data.mediumAdmins ?? 0]] as Array<[string, number]>) : []),
             ]}
           />

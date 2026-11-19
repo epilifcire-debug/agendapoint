@@ -16,6 +16,7 @@ import { AdminAccounts } from "@/components/AdminAccounts";
 import { PageHeader } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { InstallAppButton } from "@/components/PwaRegister";
+import { GOOGLE_ENABLED } from "@/lib/features";
 
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -40,7 +41,7 @@ function SettingsPage() {
   const disconnectFn = useServerFn(disconnectGoogleCalendar);
 
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => profileFn() });
-  const connected = useQuery({ queryKey: ["gcal-connected"], queryFn: () => connectedFn() });
+  const connected = useQuery({ queryKey: ["gcal-connected"], queryFn: () => connectedFn(), enabled: GOOGLE_ENABLED });
   const adminFn = useServerFn(amIAdmin);
   const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => adminFn() });
   const isAdmin = admin.data?.isAdmin === true;
@@ -88,14 +89,14 @@ function SettingsPage() {
   return (
     <div>
       <PageHeader title="Configurações" />
-      {connected.data?.needsReconnect && (
+      {GOOGLE_ENABLED && connected.data?.needsReconnect && (
         <p role="status" className="mb-4 max-w-3xl rounded-[10px] border border-orange/40 bg-sheet px-4 py-3 text-sm">
           <span className="pi-status pi-status--draft mr-2">Atenção</span>A conexão antiga com o Google Calendar precisa ser refeita nesta versão. Marque o aviso e conecte de novo.
         </p>
       )}
 
       <section className="panel max-w-3xl divide-y divide-line">
-        <div className="grid gap-4 px-5 py-5">
+        {GOOGLE_ENABLED && <div className="grid gap-4 px-5 py-5">
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-[220px] flex-1">
               <h2 className="font-medium">Google Calendar</h2>
@@ -126,7 +127,7 @@ function SettingsPage() {
               </>
             )}
           </div>
-        </div>
+        </div>}
 
         <div className="flex flex-wrap items-center gap-3 px-5 py-5">
           <div className="min-w-[220px] flex-1">

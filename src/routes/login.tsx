@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark, EfcsysSignature, logoUrl } from "@/components/brand";
+import { GOOGLE_ENABLED } from "@/lib/features";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
@@ -91,10 +92,12 @@ function LoginPage() {
         </div>
         <div className="mx-auto grid w-full max-w-[360px] flex-1 content-center gap-4 py-10">
           <h2 className="page-title">Entrar</h2>
-          <button type="button" onClick={handleGoogle} disabled={loading} className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-sheet text-sm font-medium hover:border-ink-soft disabled:opacity-60">
-            <GoogleIcon /> Entrar com Google
-          </button>
-          <p className="text-center text-xs text-ink-soft">ou com e-mail</p>
+          {GOOGLE_ENABLED && <>
+            <button type="button" onClick={handleGoogle} disabled={loading} className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-md border border-line bg-sheet text-sm font-medium hover:border-ink-soft disabled:opacity-60">
+              <GoogleIcon /> Entrar com Google
+            </button>
+            <p className="text-center text-xs text-ink-soft">ou com e-mail</p>
+          </>}
           <form className="grid gap-4" onSubmit={handleEmailSubmit}>
             <Field label="E-mail">
               <input type="email" inputMode="email" autoComplete="email" required value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="nome@empresa.com" className="h-11 w-full rounded-md border border-line bg-sheet px-3 text-base outline-none focus:border-violet focus:ring-3 focus:ring-violet/20" />
