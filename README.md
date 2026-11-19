@@ -31,6 +31,7 @@ O app no Lovable usava o Lovable Cloud. Para sair dele:
 
 1. Crie um projeto em supabase.com (região São Paulo).
 2. SQL Editor → rode, nesta ordem: `supabase/setup/001_schema_parte1.sql`, depois `002_schema_parte2.sql`.
+   **Projeto ligado ao GitHub (integração do Supabase):** ele já aplica `supabase/migrations` sozinho. Nesse caso rode só `supabase/setup/002_complemento_github.sql` (bucket de fotos + tabelas de artistas, shows e galeria).
 3. Authentication → URL Configuration: **Site URL** `https://agenda.efcsys.com`; **Redirect URLs** `https://agenda.efcsys.com/**` e `http://localhost:3000/**`.
 4. Login por **e-mail e senha** já vem ativo (Authentication → Providers → Email). O Google fica para depois.
 5. Crie sua conta (login no app ou Authentication → Users) e rode `003_primeiro_master.sql` com seu e-mail.
