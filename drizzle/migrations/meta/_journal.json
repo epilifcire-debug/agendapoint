@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789609394525,
+      "tag": "0000_create_google_calendar_consents",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789881238198,
+      "tag": "0001_restrict_google_calendar_consents_to_authenticated",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790215827513,
+      "tag": "0002_create_managed_artists_events_gallery",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790386186721,
+      "tag": "0003_restrict_managed_artist_ownership_and_avatar_reads",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790555814586,
+      "tag": "0004_restrict_managed_public_table_reads_to_server",
+      "breakpoints": true
+    }
+  ]
+}
